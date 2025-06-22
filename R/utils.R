@@ -73,7 +73,7 @@ to_gif <- function (r, fps = 5, width = 600, height = 600,
   temp_dir <- tempdir()
   img_paths <- character()
 
-  on.exit(unlink(temp_paths, recursive = TRUE), add = TRUE)
+  on.exit(unlink(img_paths, recursive = TRUE), add = TRUE)
 
   for (i in 1:terra::nlyr(r)) {
     png_file <- file.path(temp_dir, sprintf("frame_%02d.png", i))
@@ -198,9 +198,4 @@ report_time <- function(start_time) {
   } else {
     cli::cli_alert_success(paste0("Completed. Time taken: ", round(process_time), " seconds."))
   }
-}
-
-#' @noMd
-plot_change <- function(change_threshould) {
-
 }

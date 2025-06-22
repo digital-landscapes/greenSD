@@ -22,6 +22,10 @@ columns represent band values.
 Samples values by locatoins from the Greenspace Seasonality Data Cube
 global dataset developed by Wu et al. (2024).
 }
+\details{
+The Greenspace Data Cube is organized into 36 bands per year,
+each representing a 10-day interval.
+}
 \note{
 \code{samples} must be located within the same boundary of an available city in the data cube.
 Use \code{\link[=check_available_urban]{check_available_urban()}} and \code{\link[=check_urban_boundary]{check_urban_boundary()}} to see supported
@@ -35,8 +39,10 @@ boundary <- check_urban_boundary(uid = 11)
 # sample locations with in the boundary
 samples <- sf::st_sample(boundary, size = 20)
 
-# sample values
-sample_values()
+# extract values
+gs_samples <- sample_values(samples,
+                            # year = 2022
+                           )
 
 }
 \references{

@@ -63,7 +63,12 @@ print(gif)
 magick::image_write(gif, "greenspace_animation.gif")
 ```
 
-## Report issues
+## Issues and bugs
+If you discover a bug not associated with connection to the API that is
+not already a [reported
+issue](https://github.com/billbillbilly/greenSD/issues), please [open
+a new issue](https://github.com/billbillbilly/greenSD/issues/new)
+providing a reproducible example.
 
 ## Reference
 Wu, S., Song, Y., An, J. et al. High-resolution greenspace dynamic

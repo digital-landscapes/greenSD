@@ -13,7 +13,14 @@ get_band_index_by_time(time, year)
 \item{year}{numeric. (required) The year of interest.}
 }
 \description{
-A short description...
+Converts a date string in \code{"MM-DD"} format to the corresponding band index
+for the Greenspace Seasonality Data Cube, which contains 36 bands representing
+10-day intervals over a year.
+}
+\details{
+The Greenspace Data Cube is organized into 36 bands per year, each representing a 10-day interval.
+This function calculates which of those bands a given date falls into by converting the MM-DD
+string into the day-of-year (DOY) and dividing by 10 (rounded up).
 }
 \examples{
 get_band_index_by_time(c("03-20", "10-15"), year = 2020)

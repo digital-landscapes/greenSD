@@ -45,6 +45,10 @@ Retrieves high-resolution greenspace seasonality data from the Sentinel-2-based
 global dataset developed by Wu et al. (2024). Users can define a city of interest
 using a bounding box, place name, coordinates, or unique city ID (UID).
 }
+\details{
+The Greenspace Data Cube is organized into 36 bands per year,
+each representing a 10-day interval.
+}
 \note{
 Use \code{\link[=check_available_cities]{check_available_cities()}} and \code{\link[=check_city_boundary]{check_city_boundary()}} to see supported
 cities and their boundaries.
