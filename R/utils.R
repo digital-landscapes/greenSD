@@ -118,13 +118,10 @@ to_gif <- function (r, fps = 5, width = 600, height = 600,
 #' string into the day-of-year (DOY) and dividing by 10 (rounded up).
 #' @export
 get_band_index_by_time <- function(time, year) {
-  if (isTRUE(test)) {
-    return(NULL)
-  }
   date_obj <- as.Date(paste0(year, '-', time))
   day_of_year <- as.integer(format(date_obj, "%j"))
   band_index <- ((day_of_year - 1) %/% 10) + 1
-  return(band_index)
+  return(as.integer(band_index))
 }
 
 #' @noMd
