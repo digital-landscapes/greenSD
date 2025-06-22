@@ -1,18 +1,36 @@
 Package: greenSD
 Type: Package
-Title: Download Greenspace Seasonality Data Cube with bounding box or spatial coordinates
+Title: Access and Analyze Greenspace Seasonality Data Cubes Using Spatial Queries
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: c(
+    person(
+      given = "Xiaohao",
+      family = "Yang",
+      email = "xiaohaoy111@gmail.com",
+      role = c("aut", "cre", "cph")
+    ))
+Description: Provides functions to access and extract multi-band greenspace seasonality data
+  cubes derived from Sentinel-2 imagery, available for 1028 major global cities.
+  Users can download data using bounding boxes, city names, or coordinates, and sample
+  values at specific points. Built-in support for data filtering by year and time window.
+URL: https://github.com/billbillbilly/greenSD
+BugReports: https://github.com/billbillbilly/greenSD/issues
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
+Language: en-US
 Depends: 
-    R (>= 4.10)
+    R (>= 4.1)
+Suggests: 
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 Imports:
   httr2,
   terra,
   sf,
-  nominatimlite
+  nominatimlite,
+  utils
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
