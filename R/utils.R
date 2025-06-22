@@ -54,12 +54,22 @@ check_urban_boundary <- function(uid = NULL, plot = TRUE, test = FALSE) {
 #' @title Convert A Multi-layer Raster to GIF
 #' @description Export a multi-layer raster (`SpatRaster`) to an animated GIF.
 #' @param r A SpatRaster with multiple layers.
-#' @param fps Frames per second (default 5).
-#' @param width Width of output GIF in pixels.
-#' @param height Height of output GIF in pixels.
+#' @param fps numeric. Frames per second (default 5).
+#' @param width numeric. Width of output GIF in pixels.
+#' @param height numeric. Height of output GIF in pixels.
+#' @param axes logical. Draw axes?
+#' @param title_prefix character or character vector.
+#' Optional prefix or per-frame titles.
 #' @return An animated magick image object (GIF).
+#' @examples
+#' sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
+#' gif <- to_gif(sample_data)
+#'
 #' @export
-to_gif <- function (r, fps = 5, width = 600, height = 600, dir = '.') {
+to_gif <- function (r, fps = 5, width = 600, height = 600,
+                    axes = TRUE, title_prefix = NULL) {
+  stopifnot(inherits(r, "SpatRaster"), terra::nlyr(r) > 1)
+
   temp_dir <- tempdir()
   img_paths <- character()
 
@@ -67,17 +77,25 @@ to_gif <- function (r, fps = 5, width = 600, height = 600, dir = '.') {
 
   for (i in 1:terra::nlyr(r)) {
     png_file <- file.path(temp_dir, sprintf("frame_%02d.png", i))
+    # Handle dynamic or static title
+    title <- if (is.null(title_prefix)) {
+      paste("Day", i * 10)
+    } else if (length(title_prefix) == 1) {
+      paste(title_prefix, i)
+    } else {
+      title_prefix[i]
+    }
     png(png_file, width = width, height = height)
     terra::plot(r[[i]],
                 col = terra::rev(terra::map.pal('viridis', 100)),
-                main = paste("Day", i*10)
+                main = title
     )
     dev.off()
     img_paths[i] <- png_file
   }
 
   frames <- magick::image_read(img_paths)
-  animation <- magick::image_animate(frames, fps = 5)
+  animation <- magick::image_animate(frames, fps = fps)
   return(animation)
 }
 

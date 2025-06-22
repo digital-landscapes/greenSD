@@ -1,17 +1,4 @@
-#' vis_change
-#' @description
-#' Statistical analysis of changes of greenspace over years or time during a year.
-#' @param method
-#' @param change_threshould description
-#'
-#' @return list
-#'
-
-vis_change <- function(method = NULL) {
-
-}
-
-#' Generate Greenspace Density Grid
+#' Generate Density Grid
 #' @description
 #' Divides a greenspace raster into a regular grid and computes
 #' per-cell mean change or point density.
