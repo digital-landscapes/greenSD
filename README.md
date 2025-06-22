@@ -64,7 +64,7 @@ magick::image_write(gif, "greenspace_animation.gif")
 ```
 
 Example of Seasonal Greenspace Dynamics in Detroit Area:
-![](https://github.com/billbillbilly/greenSD/images/greenspace_animation.gif)
+![](images/greenspace_animation.gif)
 
 ## Issues and bugs
 If you discover a bug not associated with connection to the API that is
