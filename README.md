@@ -27,18 +27,19 @@ devtools::install_github("billbillbilly/greenSD")
 #### 1 Get data from Greenspace Seasonality Data Cube
 ```r
 # by bounding box
-
+gs <- greenSD::get_gsds_data(place = 'Detroit', year = 2022)
 # by place name
-
+gs <- greenSD::get_gsds_data(location = c(-83.10215 42.38342), year = 2022)
 # by coordinates (point)
-
+gs <- greenSD::get_gsds_data(location = c(-83.10215 42.38342), year = 2022)
 # by UID and time range
+## greenSD::check_available_cities()
+gs <- greenSD::get_gsds_data(UID = 1825, year = 2022, time = c("03-01", "09-01"))
 
 # Extract values with sampled locations
 boundary <- greenSD::check_urban_boundary(uid = 1825, plot = FALSE)
 samples <- sf::st_sample(boundary, size = 50)
 gs_samples <- greenSD::sample_values(samples, year = 2022)
-
 ```
 
 #### 2 Visualization
