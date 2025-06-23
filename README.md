@@ -7,9 +7,10 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 ## Overview
 Provides functions to access and extract multi-band greenspace seasonality data
-cubes derived from Sentinel-2 imagery, available for 1028 major global cities.
-Users can download data using bounding boxes, city names, or coordinates, and sample
-values at specific points. Built-in support for data filtering by year and time window.
+cubes (available for 1028 major global cities) and global NDVI values data from 
+ESA WorldCover 10m Annual Composites Dataset. Users can download data using 
+bounding boxes, city names, or coordinates, and sample values at specific points. 
+Built-in support for data filtering by year and time window.
 
 ## Features
 
@@ -27,14 +28,14 @@ devtools::install_github("billbillbilly/greenSD")
 #### 1 Get data from Greenspace Seasonality Data Cube
 ```r
 # by bounding box
-gs <- greenSD::get_gsds_data(place = 'Detroit', year = 2022)
+gs <- greenSD::get_gsdc_data(place = 'Detroit', year = 2022)
 # by place name
-gs <- greenSD::get_gsds_data(location = c(-83.10215 42.38342), year = 2022)
+gs <- greenSD::get_gsdc_data(location = c(-83.10215 42.38342), year = 2022)
 # by coordinates (point)
-gs <- greenSD::get_gsds_data(location = c(-83.10215 42.38342), year = 2022)
+gs <- greenSD::get_gsdc_data(location = c(-83.10215 42.38342), year = 2022)
 # by UID and time range
 ## greenSD::check_available_cities()
-gs <- greenSD::get_gsds_data(UID = 1825, year = 2022, time = c("03-01", "09-01"))
+gs <- greenSD::get_gsdc_data(UID = 1825, year = 2022, time = c("03-01", "09-01"))
 
 # Extract values with sampled locations
 boundary <- greenSD::check_urban_boundary(uid = 1825, plot = FALSE)

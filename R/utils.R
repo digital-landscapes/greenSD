@@ -3,6 +3,8 @@
 #' @importFrom terra rast merge nlyr rev map.pal
 #' @importFrom cli cli_alert_info cli_alert_success cli_progress_bar cli_progress_update cli_progress_done
 #' @importFrom magick image_read image_animate
+#' @importFrom dplyr "%>%" mutate pull
+#' @importFrom stringr str_pad
 
 
 #' @title Get all of the urban areas in the Greenspace Seasonality Data Cube
@@ -176,14 +178,65 @@ download_data <- function(urls) {
   cli::cli_progress_done()
   cli::cli_alert_success('Finished downloading data')
 
-   if (length(result_list) == 1) {
-     r <- result_list[[1]]
+  if (length(result_list) == 1) {
+    r <- result_list[[1]]
   } else {
     cli::cli_alert_info('Merging multiple tiles ...')
     r <- do.call(terra::merge, result_list)
   }
   cli::cli_alert_success("Data successfully processed.")
   return(r/1000)
+}
+
+#' @noMd
+get_esa_tile_names <- function(lat_min, lat_max, lon_min, lon_max) {
+  lat_range <- floor(lat_min):floor(lat_max)
+  lon_range <- floor(lon_min):floor(lon_max)
+
+  base::expand.grid(lat = lat_range, lon = lon_range) %>%
+    dplyr::mutate(
+      lat_label = ifelse(lat >= 0, paste0("N", stringr::str_pad(lat, 2, pad = "0")),
+                         paste0("S", stringr::str_pad(abs(lat), 2, pad = "0"))),
+      lon_label = ifelse(lon >= 0, paste0("E", stringr::str_pad(lon, 3, pad = "0")),
+                         paste0("W", stringr::str_pad(abs(lon), 3, pad = "0"))),
+      tile_name = paste0(lat_label, lon_label)
+    ) %>%
+    dplyr::pull(tile_name)
+}
+
+#' @noMd
+get_GHSurl <- function(year, id, type) {
+  if (type == 'pop') {
+    # source: https://human-settlement.emergency.copernicus.eu/download.php?ds=pop
+    return(
+      paste0(
+        'https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_54009_100/V1-0/tiles/GHS_POP_E',
+        year,
+        '_GLOBE_R2023A_54009_100_V1_0_',
+        id,
+        '.zip'
+      )
+    )
+  } else if (type == 'b_surf') {
+    return(
+      list(
+        paste0(
+          'https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_S_GLOBE_R2023A/GHS_BUILT_S_E2025_GLOBE_R2023A_54009_100/V1-0/tiles/GHS_BUILT_S_E',
+          year,
+          '_GLOBE_R2023A_54009_100_V1_0_',
+          id,
+          '.zip'
+        ),
+        paste0(
+          'https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_S_GLOBE_R2023A/GHS_BUILT_S_NRES_E2025_GLOBE_R2023A_54009_100/V1-0/tiles/GHS_BUILT_S_NRES_E',
+          year,
+          '_GLOBE_R2023A_54009_100_V1_0_',
+          id,
+          '.zip'
+        )
+      )
+    )
+  }
 }
 
 #' @noMd

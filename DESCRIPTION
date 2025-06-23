@@ -1,6 +1,6 @@
 Package: greenSD
 Type: Package
-Title: Access and Analyze Greenspace Seasonality Data Cubes Using Spatial Queries
+Title: Access and Analyze Global Greenspace Sptatil Data Using Spatial Queries
 Version: 0.1.0
 Authors@R: c(
     person(
@@ -9,10 +9,11 @@ Authors@R: c(
       email = "xiaohaoy111@gmail.com",
       role = c("aut", "cre", "cph")
     ))
-Description: Provides functions to access and extract multi-band greenspace seasonality data
-  cubes derived from Sentinel-2 imagery, available for 1028 major global cities.
-  Users can download data using bounding boxes, city names, or coordinates, and sample
-  values at specific points. Built-in support for data filtering by year and time window.
+Description: Provides functions to access and extract multi-band greenspace 
+  seasonality data cubes (available for 1028 major global cities) and global NDVI 
+  values data from ESA WorldCover 10m Annual Composites Dataset. Users can download 
+  data using bounding boxes, city names, or coordinates, and sample values at 
+  specific points. Built-in support for data filtering by year and time window.
 URL: https://github.com/billbillbilly/greenSD
 BugReports: https://github.com/billbillbilly/greenSD/issues
 License: GPL-3
@@ -33,6 +34,9 @@ Imports:
   nominatimlite,
   utils,
   cli,
-  magick
+  magick,
+  aws.s3,
+  dplyr,
+  stringr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2

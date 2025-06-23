@@ -1,5 +1,6 @@
 #' @title Download Greenspace Seasonality Data Cube
-#' @name get_gsds_data
+#' @name get_gsdc_data
+#'
 #' @description download Greenspace Seasonality Data Cube for a city.
 #' Retrieves high-resolution greenspace seasonality data from the Sentinel-2-based
 #' global dataset developed by Wu et al. (2024). Users can define a city of interest
@@ -19,6 +20,7 @@
 #' (e.g., `c("03-20", "10-15")`). Used to subset the 10-day interval data cube by time.
 #' @param mask logical (optional). Default is `FALSE`. If `TRUE`, masks the
 #' raster data using the given `bbox` or `place` if it is specified.
+#'
 #' @return A `SpatRaster` object containing the greenspace seasonality data.
 #'
 #' @details
@@ -35,7 +37,7 @@
 #' cities and their boundaries.
 #'
 #' @examples
-#' result <- get_gsds_data(UID = 0,
+#' result <- get_gsdc_data(UID = 0,
 #'                         year = 2022
 #'                        )
 #'
@@ -43,7 +45,7 @@
 #' @importFrom nominatimlite geo_lite_sf
 #' @importFrom terra mask crop vect
 #' @export
-get_gsds_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
+get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
                        year = NULL, time = NULL, mask = FALSE) {
   if (inherits(year, 'NULL')) {
     cli::cli_alert_info("`year` is missing.")
@@ -53,6 +55,10 @@ get_gsds_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
   if (inherits(bbox, 'NULL') && inherits(place, 'NULL') && inherits(location, 'NULL') && inherits(UID, 'NULL')) {
     base::warning('Area/point of interest is missing.')
     return(NULL)
+  }
+
+  if (!as.numeric(year) %in% c(2019, 2020, 2021, 2022)) {
+    stop("`year` has to be 2019, 2020, 2021, or 2022")
   }
 
   start_time <- Sys.time()
@@ -107,9 +113,9 @@ get_gsds_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
             crs = 4326
           )
         )
-        bbox <- sf::st_transform(bbox, 4326)
       }
     }
+    bbox <- sf::st_transform(bbox, 4326)
     location <- sf::st_centroid(bbox)
     uid <- check_overlap(location)
     urls <- get_data_with_uid(id = as.numeric(uid), y = year)
@@ -140,21 +146,183 @@ get_gsds_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
   }
 }
 
-#' @title Sample Greenspace Values from Data Cube
+#' @title Download NDVI Data from ESA WorldCover 10m Annual Composites Dataset
+#' @name get_ndvi_data
+#'
+#' @description download 3-band NDVI Data (NDVI p90, NDVI p50, NDVI p10).
+#' Users can define a city of interest using a bounding box or place name.
+#'
+#' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
+#' defining the area of interest. Optional if `place` is provided.
+#' @param place character or vector. (optional) A single line address,
+#' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
+#' (c("Madrid", "Barcelona")).
+#' @param year numeric. The year of interest: `2020` or `2021`. The default is `2021`.
+#' @param mask logical (optional). Default is `TRUE`. If `TRUE`, masks the
+#' raster data using the given `bbox` or `place`.
+#'
+#' @return A `SpatRaster` object containing NDVI yearly percentiles composite
+#' (NDVI p90, NDVI p50, NDVI p10)
+#'
+#' @examples
+#' result <- get_ndvi_data(
+#'   # place = 'New York'
+#' )
+#'
+#' @references
+#' Zanaga, D., Van De Kerchove, R., De Keersmaecker, W., Souverijns, N.,
+#' Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
+#' Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
+#' Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
+#' ESA WorldCover 10 m 2020 v100 (Version v100) [Data set].
+#' Zenodo. https://doi.org/10.5281/zenodo.5571936
+#'
+#' Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
+#' C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
+#' Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
+#' ESA WorldCover 10 m 2021 v200 (Version v200) [Data set].
+#' Zenodo. https://doi.org/10.5281/zenodo.7254221
+#' @importFrom aws.s3 get_bucket save_object
+#' @export
+get_ndvi_data <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
+  if (!as.numeric(year) %in% c(2020, 2021)) {
+    stop("`year` has to be 2020 or 2021")
+  }
+
+  start_time <- Sys.time()
+
+  if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
+    if (!inherits(place, 'NULL')) {
+      pla <- suppressWarnings(nominatimlite::geo_lite_sf(place, points_only = FALSE))
+      pla <- sf::st_transform(pla, crs = 4326)
+      bbox <- pla$geometry
+    } else if (!inherits(bbox, 'NULL')) {
+      if (is.numeric(bbox) && length(bbox) == 4) {
+        bbox <- sf::st_as_sfc(
+          sf::st_bbox(
+            c(xmin = bbox[1],
+              ymin = bbox[2],
+              xmax = bbox[3],
+              ymax = bbox[4]),
+            crs = 4326
+          )
+        )
+      }
+    }
+  } else {
+    return(NULL)
+  }
+  bbox <- sf::st_transform(bbox, 4326)
+  bbox_coords <- sf::st_bbox(bbox)
+
+  # List ESA Tile Names by bbox
+  tiles <- get_esa_tile_names(
+    lat_min = bbox_coords["ymin"], lat_max = bbox_coords["ymax"],
+    lon_min = bbox_coords["xmin"], lon_max = bbox_coords["xmax"]
+  )
+
+  # get tiles
+  keys <- c()
+  for (i in 1:length(tiles)) {
+    t <- tiles[i]
+    f <- aws.s3::get_bucket(
+      bucket = "esa-worldcover-s2",
+      region = "eu-central-1",
+      prefix = paste0('ndvi/',
+                      year, '/',
+                      base::strsplit(t, "W")[[1]][1],
+                      '/ESA_WorldCover_10m_',
+                      year, '_v200_', t, '_NDVI'),
+      max = Inf
+    )
+
+    f <- tibble::tibble(
+      key = vapply(f, function(x) x[["Key"]], character(1)),
+    )
+
+    keys <- c(keys, as.character(f$key))
+  }
+
+  # download data
+  result_list <- list()
+  temp_paths <- c()
+  original_timeout <- getOption('timeout')
+  options(timeout=9999)
+  on.exit({
+    options(timeout = original_timeout)
+    unlink(temp_paths, recursive = TRUE)
+  }, add = TRUE)
+  cli::cli_alert_info('Start downloading data ...')
+  for (i in 1:length(keys)) {
+    k <- keys[i]
+    temp_tif <- tempfile(fileext = ".tif")
+    aws.s3::save_object(k,
+                        bucket = "esa-worldcover-s2",
+                        region = "eu-central-1",
+                        file = temp_tif)
+    rast_data <- terra::rast(temp_tif)
+    result_list[[length(result_list) + 1]] <- rast_data
+    temp_paths <- c(temp_paths, temp_tif)
+  }
+  cli::cli_alert_success('Finished downloading data')
+
+  # merge if there are multiple tiles
+  if (length(result_list) == 1) {
+    ndvi_data <- result_list[[1]]
+  } else {
+    cli::cli_alert_info('Merging multiple tiles ...')
+    ndvi_data <- do.call(terra::merge, result_list)
+  }
+
+  # crop the raster
+  if (mask) {
+    cli::cli_alert_info('Masking and cropping data ...')
+    if (!inherits(bbox, "SpatVector")) {
+      bbox_vect <- terra::vect(bbox)
+    } else {
+      bbox_vect <- bbox
+    }
+    ndvi_data <- terra::mask(ndvi_data, bbox_vect)
+    ndvi_data <- terra::crop(ndvi_data, bbox_vect)
+  }
+  names(ndvi_data) <- c("NDVI_p90", "NDVI_p50", "NDVI_p10")
+  cli::cli_alert_success("Data successfully processed.")
+  report_time(start_time)
+  return(ndvi_data)
+}
+
+
+#' @title Sample Greenspace Values from Greenspace Seasonality Data Cube or
+#' ESA WorldCover 10m Annual Composites Dataset
 #' @name sample_values
+#'
 #' @description Samples values by locatoins from the Greenspace Seasonality Data Cube
-#' global dataset developed by Wu et al. (2024).
+#' developed by Wu et al. (2024) or ESA WorldCover 10m Annual Composites Dataset
+#' by Zanaga et al. (2021).
+#'
 #' @param samples A list, matrix, `data.frame`, or `sf` object of point locations.
 #' Can be a list of length-2 numeric vectors (`list(c(lon, lat))`),
 #' a 2-column matrix or data.frame, or an `sf` object with POINT geometry in any CRS.
-#' @param year numeric. The year of interest for the greenspace seasonality data cube.
+#' @param year numeric. The year of interest. See Detail.
+#' @param source character. The data source for extracting greenspace values:
+#' `gsdc` for Greenspace Seasonality Data Cube and `esa` for ESA WorldCover 10m
+#' Annual Composites Dataset. The default is `gsdc`.
+#'
 #' @return A `data.frame` containing greenspace values extracted at each point
-#' across all 36 bands. Each row corresponds to a sample location;
+#' across all bands. Each row corresponds to a sample location;
 #' columns represent band values.
+#'
+#' @details
+#' `year`: For the greenspace seasonality data cube, only years from 2019 to 2022
+#'  are availabe. For ESA WorldCover 10m Annual Composites Dataset, only 2020
+#'  and 2021 are available.
+#'
 #' @note
-#' `samples` must be located within the same boundary of an available city in the data cube.
-#'  Use [check_available_urban()] and [check_urban_boundary()] to see supported
-#'  cities and their boundaries.
+#' For sampling data from Greenspace Seasonality Data Cube `samples` must be
+#' located within the same boundary of an available city in the data cube.
+#' Use [check_available_urban()] and [check_urban_boundary()] to see supported
+#' cities and their boundaries.
+#'
 #' @examples
 #' # see supported urban areas and their boundaries
 #' check_available_urban()
@@ -177,10 +345,23 @@ get_gsds_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
 #' data cube from Sentinel-2 satellites over 1028 global major cities.
 #' Sci Data 11, 909 (2024). https://doi.org/10.1038/s41597-024-03746-7
 #'
+#' Zanaga, D., Van De Kerchove, R., De Keersmaecker, W., Souverijns, N.,
+#' Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
+#' Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
+#' Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
+#' ESA WorldCover 10 m 2020 v100 (Version v100) [Data set].
+#' Zenodo. https://doi.org/10.5281/zenodo.5571936
+#'
+#' Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
+#' C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
+#' Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
+#' ESA WorldCover 10 m 2021 v200 (Version v200) [Data set].
+#' Zenodo. https://doi.org/10.5281/zenodo.7254221
+#'
 #' @importFrom sf st_drop_geometry
 #' @importFrom terra extract vect
 #' @export
-sample_values <- function(samples = NULL, year = NULL) {
+sample_values <- function(samples = NULL, year = NULL, source = 'gsdc') {
   if (is.null(year)) {
     cli::cli_alert_info("`year` is missing.")
     return(NULL)
@@ -205,7 +386,12 @@ sample_values <- function(samples = NULL, year = NULL) {
   bbox <- as.numeric(sf::st_bbox(sf_points)) + c(-0.01, -0.01, 0.01, 0.01)
 
   # Retrieve raster data
-  raster_data <- get_gsds_data(bbox = bbox, year = year)
+  if (source == 'gsdc') {
+    raster_data <- get_gsdc_data(bbox = bbox, year = year)
+  } else if (source == 'esa') {
+    raster_data <- get_ndvi_data(bbox = bbox, year = year)
+  }
+
 
   if (is.null(raster_data)) {
     cli::cli_alert_warning("No raster data found for the specified location/year.")
