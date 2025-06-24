@@ -64,7 +64,7 @@ pwgf <- pop_weg(
 |----------------------------|--------------------------------|-------------------------------------|
 |Population-Weighted Greenspace Fraction |  Add grid over the layer | 
 |----------------------------------------|----------------------------------------|
-|     ![](images/pwgf.png)               |  ![](images/grid_500m.png) 
+|     ![](images/pwgf.png)               |  ![](images/grid_500m.png) |
 
 #### 3 Visualization
 The `to_gif()` function converts a multi-band raster to into an animated GIF
