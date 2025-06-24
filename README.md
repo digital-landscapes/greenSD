@@ -78,9 +78,9 @@ magick::image_write(gif, "greenspace_animation.gif")
 ```
 Example in the Detroit area:
 
-| seasonal greenspace dynamics | population-weighted greenspace fraction | population-weighted greenspace exposure|
+| Seasonal Greenspace Dynamics | Population-Weighted Greenspace Fraction | Population-Weighted Greenspace Exposure |
+|------------------------------|------------------------------------------|------------------------------------------|
 | ![](images/greenspace_animation.gif) | ![](images/greenspace_fraction_animation.gif) | ![](images/greenspace_exposure_animation.gif) |
-|---------------|---------------|---------------|
 
 ## Issues and bugs
 If you discover a bug not associated with connection to the API that is
