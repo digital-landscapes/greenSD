@@ -6,11 +6,13 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 ## Overview
-Provides functions to access and extract multi-band greenspace seasonality data
-cubes (available for 1028 major global cities) and global NDVI values data from 
-ESA WorldCover 10m Annual Composites Dataset. Users can download data using 
-bounding boxes, city names, or coordinates, and sample values at specific points. 
-Built-in support for data filtering by year and time window.
+Provides tools to access and analyze multi-band greenspace seasonality data cubes 
+(available for 1,028 major global cities) and global NDVI data from the ESA 
+WorldCover 10m Annual Composites Dataset. Users can download data using bounding 
+boxes, city names, or coordinates, extract values at specific points, and filter 
+by year or seasonal time window. The package also supports calculating human 
+exposure to greenspace using a population-weighted greenspace exposure model 
+based on GHSL population data.
 
 ## Features
 
@@ -43,13 +45,23 @@ samples <- sf::st_sample(boundary, size = 50)
 gs_samples <- greenSD::sample_values(samples, year = 2022)
 ```
 
-#### 2 Visualization
-The `to_gif()` function converts a multi-band raster to into an animated GIF
-
+#### 2 Compute population-weighted greenspace fraction and exposure to greenspace
 ```r
 # Load example data (or use `gs` from previous step)
 sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
-# Generate GIF
+
+pwgf <- pop_weg(
+      r = sample_data,
+      source = 'gsdc',
+      pop_year = 2020,
+      radius = 1500)
+
+```
+
+#### 3 Visualization
+The `to_gif()` function converts a multi-band raster to into an animated GIF
+
+```r
 gif <- greenSD::to_gif(
   r = sample_data,
   fps = 5,
@@ -65,8 +77,11 @@ print(gif)
 magick::image_write(gif, "greenspace_animation.gif")
 ```
 
-Example of Seasonal Greenspace Dynamics in Detroit Area:
+Example of seasonal greenspace dynamics in Detroit area:
 ![](images/greenspace_animation.gif)
+
+Example of population-weighted greenspace fraction:
+![](images/greenspace_fraction_animation.gif)
 
 ## Issues and bugs
 If you discover a bug not associated with connection to the API that is

@@ -4,10 +4,19 @@
 \alias{to_gif}
 \title{Convert A Multi-layer Raster to GIF}
 \usage{
-to_gif(r, fps = 5, width = 600, height = 600, axes = TRUE, title_prefix = NULL)
+to_gif(
+  r,
+  fps = 5,
+  width = 600,
+  height = 600,
+  axes = TRUE,
+  title_prefix = NULL,
+  border = FALSE
+)
 }
 \arguments{
-\item{r}{A SpatRaster with multiple layers.}
+\item{r}{SpatRaster or sf. A SpatRaster with multiple layers or an sf object
+with multiple numeric value columns.}
 
 \item{fps}{numeric. Frames per second (default 5).}
 
@@ -17,14 +26,17 @@ to_gif(r, fps = 5, width = 600, height = 600, axes = TRUE, title_prefix = NULL)
 
 \item{axes}{logical. Draw axes?}
 
-\item{title_prefix}{character or character vector.
-Optional prefix or per-frame titles.}
+\item{title_prefix}{character or character vector.}
+
+\item{border}{character. Color of polygon border(s); using NA hides them.
+Only optional when \code{r} is an sf object.}
 }
 \value{
 An animated magick image object (GIF).
 }
 \description{
-Export a multi-layer raster (\code{SpatRaster}) to an animated GIF.
+Export a multi-layer raster (\code{SpatRaster}) or vector layer (\code{sf})
+with multiple numeric value columns to an animated GIF.
 }
 \examples{
 sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))

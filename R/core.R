@@ -392,7 +392,6 @@ sample_values <- function(samples = NULL, year = NULL, source = 'gsdc') {
     raster_data <- get_ndvi_data(bbox = bbox, year = year)
   }
 
-
   if (is.null(raster_data)) {
     cli::cli_alert_warning("No raster data found for the specified location/year.")
     return(NULL)
