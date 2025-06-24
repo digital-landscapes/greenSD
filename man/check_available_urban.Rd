@@ -6,6 +6,9 @@
 \usage{
 check_available_urban(test = FALSE)
 }
+\arguments{
+\item{test}{logical. (ignored) Only for testing.}
+}
 \value{
 dataframe
 }

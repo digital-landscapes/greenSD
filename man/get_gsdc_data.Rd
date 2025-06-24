@@ -25,7 +25,7 @@ e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 \item{location}{vector or sf point. A point of interest.
 Ignored if \code{UID} is specified.}
 
-\item{UID}{numeric. City ID. To check the ID of an available city,
+\item{UID}{numeric. Urban area ID. To check the ID of an available urban area,
 use \code{\link[=check_available_urban]{check_available_urban()}}}
 
 \item{year}{numeric. (required) The year of interest.}
@@ -50,7 +50,7 @@ The Greenspace Data Cube is organized into 36 bands per year,
 each representing a 10-day interval.
 }
 \note{
-Use \code{\link[=check_available_cities]{check_available_cities()}} and \code{\link[=check_city_boundary]{check_city_boundary()}} to see supported
+Use \code{\link[=check_available_urban]{check_available_urban()}} and \code{\link[=check_urban_boundary]{check_urban_boundary()}} to see supported
 cities and their boundaries.
 }
 \examples{

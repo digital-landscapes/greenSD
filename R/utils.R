@@ -5,12 +5,15 @@
 #' @importFrom magick image_read image_animate
 #' @importFrom dplyr "%>%" mutate pull
 #' @importFrom stringr str_pad
+#' @importFrom grDevices dev.off png
+#' @importFrom rlang .data
 
 
 #' @title Get all of the urban areas in the Greenspace Seasonality Data Cube
 #' @name check_available_urban
 #' @description This function returns all of the urban areas
 #' in the Greenspace Seasonality Data Cube dataset.
+#' @param test logical. (ignored) Only for testing.
 #' @return dataframe
 #' @references
 #' Wu, S., Song, Y., An, J. et al. High-resolution greenspace dynamic
@@ -33,6 +36,10 @@ check_available_urban <- function(test = FALSE) {
 #' @title Get an urban area boundary based on the UID
 #' @name check_urban_boundary
 #' @description This function returns a polygon of a city boundary based on the UID
+#' @param uid numeric. Urban area ID. To check the ID of an available urban area,
+#' use [check_available_urban()]
+#' @param plot logical. Whether to plot city boundary
+#' @param test logical. (ignored) Only for testing.
 #' @return sf
 #' @references
 #' Wu, S., Song, Y., An, J. et al. High-resolution greenspace dynamic
@@ -48,7 +55,7 @@ check_urban_boundary <- function(uid = NULL, plot = TRUE, test = FALSE) {
   boundary <- suppressMessages(
     sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/main/docs/city_urban_boundaries.geojson')
   )
-  b <- subset(boundary, UID==uid)
+  b <- boundary[boundary$UID == uid, ]
   plot(b$geometry)
   return(b)
 }
@@ -98,7 +105,7 @@ to_gif <- function (r, fps = 5, width = 600, height = 600,
 
   for (i in 1:n_frames) {
     png_file <- file.path(temp_dir, sprintf("frame_%02d.png", i))
-    png(png_file, width = width, height = height)
+    grDevices::png(png_file, width = width, height = height)
 
     if (is_raster) {
       # Handle dynamic or static title
@@ -131,7 +138,7 @@ to_gif <- function (r, fps = 5, width = 600, height = 600,
            axes = axes)
     }
 
-    dev.off()
+    grDevices::dev.off()
     img_paths[i] <- png_file
   }
 
@@ -234,13 +241,13 @@ get_esa_tile_names <- function(lat_min, lat_max, lon_min, lon_max) {
 
   base::expand.grid(lat = lat_range, lon = lon_range) %>%
     dplyr::mutate(
-      lat_label = ifelse(lat >= 0, paste0("N", stringr::str_pad(lat, 2, pad = "0")),
-                         paste0("S", stringr::str_pad(abs(lat), 2, pad = "0"))),
-      lon_label = ifelse(lon >= 0, paste0("E", stringr::str_pad(lon, 3, pad = "0")),
-                         paste0("W", stringr::str_pad(abs(lon), 3, pad = "0"))),
-      tile_name = paste0(lat_label, lon_label)
+      lat_label = ifelse(.data$lat >= 0, paste0("N", stringr::str_pad(.data$lat, 2, pad = "0")),
+                         paste0("S", stringr::str_pad(abs(.data$lat), 2, pad = "0"))),
+      lon_label = ifelse(.data$lon >= 0, paste0("E", stringr::str_pad(.data$lon, 3, pad = "0")),
+                         paste0("W", stringr::str_pad(abs(.data$lon), 3, pad = "0"))),
+      tile_name = paste0(.data$lat_label, .data$lon_label)
     ) %>%
-    dplyr::pull(tile_name)
+    dplyr::pull(.data$tile_name)
 }
 
 #' @noMd

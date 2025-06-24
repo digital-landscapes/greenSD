@@ -38,12 +38,12 @@ Zanaga, D., Van De Kerchove, R., De Keersmaecker, W., Souverijns, N.,
 Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
 Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
 Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
-ESA WorldCover 10 m 2020 v100 (Version v100) \link{Data set}.
+ESA WorldCover 10 m 2020 v100 (Version v100).
 Zenodo. https://doi.org/10.5281/zenodo.5571936
 
 Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
 C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
 Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
-ESA WorldCover 10 m 2021 v200 (Version v200) \link{Data set}.
+ESA WorldCover 10 m 2021 v200 (Version v200).
 Zenodo. https://doi.org/10.5281/zenodo.7254221
 }

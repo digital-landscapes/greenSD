@@ -13,7 +13,7 @@
 #' (c("Madrid", "Barcelona")). This can be ignored if `location` is specified.
 #' @param location vector or sf point. A point of interest.
 #' Ignored if `UID` is specified.
-#' @param UID numeric. City ID. To check the ID of an available city,
+#' @param UID numeric. Urban area ID. To check the ID of an available urban area,
 #' use [check_available_urban()]
 #' @param year numeric. (required) The year of interest.
 #' @param time Character vector of length 2. (optional) Start and end dates in `"MM-DD"` format
@@ -33,7 +33,7 @@
 #' Sci Data 11, 909 (2024). https://doi.org/10.1038/s41597-024-03746-7
 #'
 #' @note
-#' Use [check_available_cities()] and [check_city_boundary()] to see supported
+#' Use [check_available_urban()] and [check_urban_boundary()] to see supported
 #' cities and their boundaries.
 #'
 #' @examples
@@ -53,7 +53,7 @@ get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
   }
 
   if (inherits(bbox, 'NULL') && inherits(place, 'NULL') && inherits(location, 'NULL') && inherits(UID, 'NULL')) {
-    base::warning('Area/point of interest is missing.')
+    cli::cli_alert_info('Area/point of interest is missing.')
     return(NULL)
   }
 
@@ -66,7 +66,7 @@ get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
 
   # find the city with a corresponding uid
   if(!inherits(UID, 'NULL')) {
-    urls <- get_data_with_uid(uid, year)
+    urls <- get_data_with_uid(UID, year)
     greenspace <- download_data(urls)
     if (!is.null(time)) {
       start_band_index <- get_band_index_by_time(time[1], year)
@@ -174,13 +174,13 @@ get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
 #' Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
 #' Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
 #' Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
-#' ESA WorldCover 10 m 2020 v100 (Version v100) [Data set].
+#' ESA WorldCover 10 m 2020 v100 (Version v100).
 #' Zenodo. https://doi.org/10.5281/zenodo.5571936
 #'
 #' Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
 #' C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
 #' Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
-#' ESA WorldCover 10 m 2021 v200 (Version v200) [Data set].
+#' ESA WorldCover 10 m 2021 v200 (Version v200).
 #' Zenodo. https://doi.org/10.5281/zenodo.7254221
 #' @importFrom aws.s3 get_bucket save_object
 #' @export
@@ -349,13 +349,13 @@ get_ndvi_data <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
 #' Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
 #' Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
 #' Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
-#' ESA WorldCover 10 m 2020 v100 (Version v100) [Data set].
+#' ESA WorldCover 10 m 2020 v100 (Version v100).
 #' Zenodo. https://doi.org/10.5281/zenodo.5571936
 #'
 #' Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
 #' C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
 #' Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
-#' ESA WorldCover 10 m 2021 v200 (Version v200) [Data set].
+#' ESA WorldCover 10 m 2021 v200 (Version v200).
 #' Zenodo. https://doi.org/10.5281/zenodo.7254221
 #'
 #' @importFrom sf st_drop_geometry

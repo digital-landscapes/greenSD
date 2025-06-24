@@ -50,7 +50,7 @@
 #'
 #' where \( w_1, w_2, w_3 \) are the user-defined weights (default: 0.75, 0.2, 0.05).
 #' This gives more weight to persistent greenness (p90) and mid-season vegetation (p50),
-#' and less to transient low values (p10). Output is bounded within [0, 1].
+#' and less to transient low values (p10). Output is bounded within \eqn{[0, 1]}.
 #'
 #' The greenspace fraction \eqn{G_i} for each pixel \eqn{i} is estimated by
 #' combining the NDVI percentiles using a weighted linear model:
@@ -154,7 +154,7 @@ pop_weg <- function(r = NULL,
     cli::cli_alert_info('Return the population-weighted greenspace fraction (pwgf)')
     # return the population-weighted greenspace fraction
     out <- r_stack
-    terra:set.names(out, paste('pwgf_', 1:(n_name - 1), sep = ""))
+    terra::set.names(out, paste('pwgf_', 1:(n_name - 1), sep = ""))
     return(out)
   } else {
     cli::cli_alert_info('Computing population-weighted greenspace exposure (pwge)')

@@ -71,7 +71,7 @@ G_i = \min\left( \max\left( w_1 \cdot \text{NDVI}_{p90} + w_2 \cdot \text{NDVI}_
 
 where \( w_1, w_2, w_3 \) are the user-defined weights (default: 0.75, 0.2, 0.05).
 This gives more weight to persistent greenness (p90) and mid-season vegetation (p50),
-and less to transient low values (p10). Output is bounded within \link{0, 1}.
+and less to transient low values (p10). Output is bounded within \eqn{[0, 1]}.
 
 The greenspace fraction \eqn{G_i} for each pixel \eqn{i} is estimated by
 combining the NDVI percentiles using a weighted linear model:

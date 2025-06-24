@@ -6,6 +6,14 @@
 \usage{
 check_urban_boundary(uid = NULL, plot = TRUE, test = FALSE)
 }
+\arguments{
+\item{uid}{numeric. Urban area ID. To check the ID of an available urban area,
+use \code{\link[=check_available_urban]{check_available_urban()}}}
+
+\item{plot}{logical. Whether to plot city boundary}
+
+\item{test}{logical. (ignored) Only for testing.}
+}
 \value{
 sf
 }
