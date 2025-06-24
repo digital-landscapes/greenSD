@@ -76,14 +76,11 @@ print(gif)
 # To save the GIF manually:
 magick::image_write(gif, "greenspace_animation.gif")
 ```
+Example in the Detroit area:
+
+| seasonal greenspace dynamics | population-weighted greenspace fraction | population-weighted greenspace exposure|
 | ![](images/greenspace_animation.gif) | ![](images/greenspace_fraction_animation.gif) | ![](images/greenspace_exposure_animation.gif) |
 |---------------|---------------|---------------|
-
-Example of seasonal greenspace dynamics in Detroit area:
-![](images/greenspace_animation.gif)
-
-Example of population-weighted greenspace fraction:
-![](images/greenspace_fraction_animation.gif)
 
 ## Issues and bugs
 If you discover a bug not associated with connection to the API that is
