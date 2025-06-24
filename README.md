@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![R-CMD-check](https://github.com/billbillbilly/greenSD/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/billbillbilly/greenSD/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 ## Overview
@@ -12,9 +13,19 @@ WorldCover 10m Annual Composites Dataset. Users can download data using bounding
 boxes, city names, or coordinates, extract values at specific points, and filter 
 by year or seasonal time window. The package also supports calculating human 
 exposure to greenspace using a population-weighted greenspace exposure model 
-based on GHSL population data.
+based on Global Human Settlement Layer (GHSL) population data.
 
 ## Features
+🌍 Access global greenspace datasets by bounding box, city name, or geographic coordinates
+- Seasonal greenspace data cubes for 1028 major global cities
+- 10m NDVI composite data from ESA WorldCover
+
+🧮 Greenspace metrics calculation with GHSL population data
+- Estimate population-weighted greenspace fraction (PWGF)
+- Calculate population-weighted greenspace exposure (PWGE) 
+
+📊 Visualization
+- Export multi-layer data as animated GIFs
 
 ## Installation
 Install the development version:
@@ -114,3 +125,27 @@ providing a reproducible example.
 Wu, S., Song, Y., An, J. et al. High-resolution greenspace dynamic
 data cube from Sentinel-2 satellites over 1028 global major cities.
 Sci Data 11, 909 (2024). https://doi.org/10.1038/s41597-024-03746-7
+
+Chen, B., Wu, S., Song, Y. et al. Contrasting inequality in human exposure to
+greenspace between cities of Global North and Global South. Nat Commun 13,
+4636 (2022). https://doi.org/10.1038/s41467-022-32258-4
+
+Pesaresi, M., Schiavina, M., Politis, P., Freire, S., Krasnodębska, K.,
+Uhl, J. H., … Kemper, T. (2024). Advances on the Global Human Settlement
+Layer by joint assessment of Earth Observation and population survey data.
+International Journal of Digital Earth, 17(1).
+https://doi.org/10.1080/17538947.2024.2390454
+
+Zanaga, D., Van De Kerchove, R., De Keersmaecker, W., Souverijns, N.,
+Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
+Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
+Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
+ESA WorldCover 10 m 2020 v100 (Version v100) [Data set].
+Zenodo. https://doi.org/10.5281/zenodo.5571936
+
+Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
+C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
+Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
+ESA WorldCover 10 m 2021 v200 (Version v200) [Data set].
+Zenodo. https://doi.org/10.5281/zenodo.7254221
+@importFrom aws.s3 get_bucket save_object
