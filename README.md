@@ -50,21 +50,30 @@ gs_samples <- greenSD::sample_values(samples, year = 2022)
 # Load example data (or use `gs` from previous step)
 sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
 
-pwgf <- pop_weg(
+# population-weighted greenspace fraction
+pwgf <- greenSD::pop_weg(
       r = sample_data,
       source = 'gsdc',
       pop_year = 2020,
-      radius = 1500)
+      radius = 500)
+
+# population-weighted greenspace exposure
+pwge <- greenSD::pop_weg(
+      r = sample_data,
+      source = 'gsdc',
+      pop_year = 2020,
+      radius = 500, 
+      grid_size = 500)
 
 ```
 
-|       GHS population       |       Population points        |    500m buffers based on points     | 
+|       GHSL population       |       extract population by points        |    500m buffers based on points     | 
 |----------------------------|--------------------------------|-------------------------------------|
 | ![](images/population.png) | ![](images/population_pts.png) | ![](images/pop_pt_buffers_500m.png) | 
 
-|Population-Weighted Greenspace Fraction |  Add grid over the layer | 
-|----------------------------------------|----------------------------------------|
-|     ![](images/pwgf.png)               |  ![](images/grid_500m.png) |
+|Population-Weighted greenspace fraction |  summarize values with grid | population-Weighted greenspace exposure | 
+|----------------------------------------|----------------------------|----------------------------|
+|     ![](images/pwgf.png)               |  ![](images/grid_500m.png) | ![](images/etg.png) |
 
 #### 3 Visualization
 The `to_gif()` function converts a multi-band raster to into an animated GIF
