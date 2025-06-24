@@ -71,7 +71,8 @@ Computational process of population-weighted greenspace fraction and exposure
 
 | <span style="font-size:12px;">GHSL population</span> | <span style="font-size:12px;">Extract population by points</span> | <span style="font-size:12px;">500m buffers based on points</span> |
 |------------------------------|--------------------------------------------|-------------------------------------------|
-| <figure><img src="images/population.png" width="30%"/><figcaption style="font-size:10px;">Download GHSL population raster</figcaption></figure> | <figure><img src="images/population_pts.png" width="30%"/><figcaption style="font-size:10px;">Convert population raster to points</figcaption></figure> | <figure><img src="images/pop_pt_buffers_500m.png" width="30%"/><figcaption style="font-size:10px;">Generate 500m buffers around population points</figcaption></figure> |
+| <figure><img src="images/population.png" width="30%"/></figure> | <figure><img src="images/population_pts.png" width="30%"/></figure> | <figure><img src="images/pop_pt_buffers_500m.png" width="30%"/></figure> |
+| <figcaption style="font-size:10px;">Download GHSL population raster</figcaption> | <figcaption style="font-size:10px;">Convert population raster to points</figcaption> | <figcaption style="font-size:10px;">Generate 500m buffers around population points</figcaption> |
 
 | <span style="font-size:12px;">Population-Weighted Greenspace Fraction</span> | <span style="font-size:12px;">Summarize values with grid</span> | <span style="font-size:12px;">Population-Weighted Greenspace Exposure</span> |
 |--------------------------------------------|--------------------------------------|---------------------------------------------|
