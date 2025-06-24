@@ -69,17 +69,17 @@ pwge <- greenSD::pop_weg(
 
 Computational process of population-weighted greenspace fraction and exposure
 
-| <span style="font-size:14px;">GHSL population</span> | <span style="font-size:14px;">Extract population by points</span> | <span style="font-size:14px;">500m buffers based on points</span> |
+| <span style="font-size:12px;">GHSL population</span> | <span style="font-size:12px;">Extract population by points</span> | <span style="font-size:12px;">500m buffers based on points</span> |
 |------------------------------|--------------------------------------------|-------------------------------------------|
-| <figure><img src="images/population.png" width="100%"/><figcaption style="font-size:12px;">Download GHSL population raster</figcaption></figure> | 
-  <figure><img src="images/population_pts.png" width="100%"/><figcaption style="font-size:12px;">Convert population raster to points</figcaption></figure> | 
-  <figure><img src="images/pop_pt_buffers_500m.png" width="100%"/><figcaption style="font-size:12px;">Generate 500m buffers around population points</figcaption></figure> |
+| <figure><img src="images/population.png" width="30%"/><figcaption style="font-size:12px;">Download GHSL population raster</figcaption></figure> | 
+  <figure><img src="images/population_pts.png" width="30%"/><figcaption style="font-size:12px;">Convert population raster to points</figcaption></figure> | 
+  <figure><img src="images/pop_pt_buffers_500m.png" width="30%"/><figcaption style="font-size:12px;">Generate 500m buffers around population points</figcaption></figure> |
 
-| <span style="font-size:14px;">Population-Weighted Greenspace Fraction</span> | <span style="font-size:14px;">Summarize values with grid</span> | <span style="font-size:14px;">Population-Weighted Greenspace Exposure</span> |
+| <span style="font-size:12px;">Population-Weighted Greenspace Fraction</span> | <span style="font-size:12px;">Summarize values with grid</span> | <span style="font-size:12px;">Population-Weighted Greenspace Exposure</span> |
 |--------------------------------------------|--------------------------------------|---------------------------------------------|
-| <figure><img src="images/pwgf.png" width="100%"/><figcaption style="font-size:12px;">Compute greenspace area within each buffer and weight by population</figcaption></figure> |
-  <figure><img src="images/grid_500m.png" width="100%"/><figcaption style="font-size:12px;">Generate 500m grid to aggregate data</figcaption></figure> |
-  <figure><img src="images/etg.png" width="100%"/><figcaption style="font-size:12px;">Summarize population-weighted greenspace fraction by grid</figcaption></figure> |
+| <figure><img src="images/pwgf.png" width="30%"/><figcaption style="font-size:12px;">Compute greenspace area within each buffer and weight by population</figcaption></figure> |
+  <figure><img src="images/grid_500m.png" width="30%"/><figcaption style="font-size:12px;">Generate 500m grid to aggregate data</figcaption></figure> |
+  <figure><img src="images/etg.png" width="30%"/><figcaption style="font-size:12px;">Summarize population-weighted greenspace fraction by grid</figcaption></figure> |
 
 
 
