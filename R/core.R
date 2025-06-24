@@ -38,7 +38,7 @@
 #'
 #' @examples
 #' result <- get_gsdc_data(UID = 0,
-#'                         year = 2022
+#'                         # year = 2022
 #'                        )
 #'
 #' @importFrom sf st_sfc st_transform st_bbox st_as_sfc st_point
