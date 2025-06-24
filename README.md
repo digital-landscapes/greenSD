@@ -61,7 +61,6 @@ pwgf <- pop_weg(
 |       GHS population       |       Population points        |    500m buffers based on points     | 
 |----------------------------|--------------------------------|-------------------------------------|
 | ![](images/population.png) | ![](images/population_pts.png) | ![](images/pop_pt_buffers_500m.png) | 
-|----------------------------|--------------------------------|-------------------------------------|
 
 |Population-Weighted Greenspace Fraction |  Add grid over the layer | 
 |----------------------------------------|----------------------------------------|
