@@ -80,12 +80,12 @@ pwge <- greenSD::pop_weg(
 
 Computational process of population-weighted greenspace fraction and exposure
 
-| <span style="font-size:10px;">1 GHSL population</span> | <span style="font-size:10px;">2 Extract population by points</span> | <span style="font-size:10px;">3 buffers based on points</span> |
+| <span style="font-size:10px;">1. GHSL population</span> | <span style="font-size:10px;">2. Extract population by points</span> | <span style="font-size:10px;">3. buffers based on points</span> |
 |------------------------------|--------------------------------------------|-------------------------------------------|
 | <figure><img src="images/population.png" width="100%"/></figure> | <figure><img src="images/population_pts.png" width="100%"/></figure> | <figure><img src="images/pop_pt_buffers_500m.png" width="100%"/></figure> |
 | <figcaption style="font-size:8px;">Download GHSL population raster</figcaption> | <figcaption style="font-size:8px;">Convert population raster to points</figcaption> | <figcaption style="font-size:8px;">Generate 500m buffers around population points</figcaption> |
 
-| <span style="font-size:10px;">4 Population-Weighted Greenspace Fraction</span> | <span style="font-size:10px;">5 Summarize values with grid</span> | <span style="font-size:10px;">6 Population-Weighted Greenspace Exposure</span> |
+| <span style="font-size:10px;">4. Population-Weighted Greenspace Fraction</span> | <span style="font-size:10px;">5. Summarize values with grid</span> | <span style="font-size:10px;">6. Population-Weighted Greenspace Exposure</span> |
 |--------------------------------------------|--------------------------------------|---------------------------------------------|
 | <figure><img src="images/pwgf.png" width="100%"/></figure> | <figure><img src="images/grid_500m.png" width="100%"/></figure> | <figure><img src="images/etg.png" width="100%"/></figure> |
 | <figcaption style="font-size:8px;">Compute greenspace area within each buffer and weight by population</figcaption> | <figcaption style="font-size:8px;">Generate 500m grid to aggregate data</figcaption> | <figcaption style="font-size:8px;">Summarize population-weighted greenspace fraction by grid</figcaption> |
