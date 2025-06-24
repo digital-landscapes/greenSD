@@ -67,13 +67,21 @@ pwge <- greenSD::pop_weg(
 
 ```
 
-|       GHSL population       |       extract population by points        |    500m buffers based on points     | 
-|----------------------------|--------------------------------|-------------------------------------|
-| ![](images/population.png) | ![](images/population_pts.png) | ![](images/pop_pt_buffers_500m.png) | 
+Computational process of population-weighted greenspace fraction and exposure
 
-|Population-Weighted greenspace fraction |  summarize values with grid | population-Weighted greenspace exposure | 
-|----------------------------------------|----------------------------|----------------------------|
-|     ![](images/pwgf.png)               |  ![](images/grid_500m.png) | ![](images/etg.png) |
+| <span style="font-size:14px;">GHSL population</span> | <span style="font-size:14px;">Extract population by points</span> | <span style="font-size:14px;">500m buffers based on points</span> |
+|------------------------------|--------------------------------------------|-------------------------------------------|
+| <figure><img src="images/population.png" width="100%"/><figcaption style="font-size:12px;">Download GHSL population raster</figcaption></figure> | 
+  <figure><img src="images/population_pts.png" width="100%"/><figcaption style="font-size:12px;">Convert population raster to points</figcaption></figure> | 
+  <figure><img src="images/pop_pt_buffers_500m.png" width="100%"/><figcaption style="font-size:12px;">Generate 500m buffers around population points</figcaption></figure> |
+
+| <span style="font-size:14px;">Population-Weighted Greenspace Fraction</span> | <span style="font-size:14px;">Summarize values with grid</span> | <span style="font-size:14px;">Population-Weighted Greenspace Exposure</span> |
+|--------------------------------------------|--------------------------------------|---------------------------------------------|
+| <figure><img src="images/pwgf.png" width="100%"/><figcaption style="font-size:12px;">Compute greenspace area within each buffer and weight by population</figcaption></figure> |
+  <figure><img src="images/grid_500m.png" width="100%"/><figcaption style="font-size:12px;">Generate 500m grid to aggregate data</figcaption></figure> |
+  <figure><img src="images/etg.png" width="100%"/><figcaption style="font-size:12px;">Summarize population-weighted greenspace fraction by grid</figcaption></figure> |
+
+
 
 #### 3 Visualization
 The `to_gif()` function converts a multi-band raster to into an animated GIF
