@@ -58,6 +58,10 @@ pwgf <- pop_weg(
 
 ```
 
+|       GHS population       |       Population points        |    500m buffers based on points     | Population-Weighted Greenspace Fraction
+|----------------------------|--------------------------------|-------------------------------------|-----------------------------------------|
+| ![](images/population.png) | ![](images/population_pts.png) | ![](images/pop_pt_buffers_500m.png) | ![](images/pwgf.png) |
+
 #### 3 Visualization
 The `to_gif()` function converts a multi-band raster to into an animated GIF
 
