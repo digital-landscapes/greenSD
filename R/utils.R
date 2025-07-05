@@ -345,6 +345,47 @@ download_GHSL <- function(bbox, year) {
 }
 
 #' @noMd
+download_sentinel <- function (bbox, start_date, end_date,
+                               cloud_cover = 10, vege_perc = 0) {
+  original_timeout <- getOption('timeout')
+  options(timeout=9999)
+  temp_paths <- c()
+  on.exit({
+    options(timeout = original_timeout)
+    unlink(temp_paths, recursive = TRUE)
+  }, add = TRUE)
+
+  bbox <- as.vector(sf::st_bbox(bbox))
+  polygon <- list(
+    type = "Polygon",
+    coordinates = list(
+      matrix(c(bbox[1], bbox[2],
+               bbox[3], bbox[2],
+               bbox[3], bbox[4],
+               bbox[1], bbox[4],
+               bbox[1], bbox[2]),
+             ncol = 2, byrow = TRUE)
+    )
+  )
+
+  res <- rstac::stac("https://planetarycomputer.microsoft.com/api/stac/v1") %>%
+    rstac::ext_filter(
+      collection == "sentinel-2-l2a" &&
+        `eo:cloud_cover` <= !!cloud_cover &&
+        `s2:vegetation_percentage` >= !!vege_perc &&
+        anyinteracts(datetime, interval(!!start_date, !!end_date)) &&
+        s_intersects(geometry, {{polygon}})
+    ) %>%
+    rstac::post_request()
+  return(res$features)
+}
+
+#' @noMd
+compute_ndvi <- function(b04, b08) {
+  (b08 - b04) / (b08 + b04)
+}
+
+#' @noMd
 report_time <- function(start_time) {
   end_time <- Sys.time()
   process_time <- as.numeric(difftime(end_time, start_time, units = "secs"))

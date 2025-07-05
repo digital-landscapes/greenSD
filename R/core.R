@@ -1,7 +1,7 @@
 #' @title Download Greenspace Seasonality Data Cube
-#' @name get_gsdc_data
+#' @name get_gsdc
 #'
-#' @description download Greenspace Seasonality Data Cube for a city.
+#' @description download Greenspace Seasonality Data Cube for an urban area.
 #' Retrieves high-resolution greenspace seasonality data from the Sentinel-2-based
 #' global dataset developed by Wu et al. (2024). Users can define a city of interest
 #' using a bounding box, place name, coordinates, or unique city ID (UID).
@@ -37,15 +37,15 @@
 #' cities and their boundaries.
 #'
 #' @examples
-#' result <- get_gsdc_data(UID = 0,
-#'                         # year = 2022
-#'                        )
+#' result <- get_gsdc(UID = 0,
+#'                    # year = 2022
+#'                   )
 #'
 #' @importFrom sf st_sfc st_transform st_bbox st_as_sfc st_point
 #' @importFrom nominatimlite geo_lite_sf
 #' @importFrom terra mask crop vect
 #' @export
-get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
+get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
                        year = NULL, time = NULL, mask = FALSE) {
   if (inherits(year, 'NULL')) {
     cli::cli_alert_info("`year` is missing.")
@@ -147,7 +147,7 @@ get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
 }
 
 #' @title Download NDVI Data from ESA WorldCover 10m Annual Composites Dataset
-#' @name get_ndvi_data
+#' @name get_esa_ndvi
 #'
 #' @description download 3-band NDVI Data (NDVI p90, NDVI p50, NDVI p10).
 #' Users can define a city of interest using a bounding box or place name.
@@ -184,7 +184,7 @@ get_gsdc_data <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL
 #' Zenodo. https://doi.org/10.5281/zenodo.7254221
 #' @importFrom aws.s3 get_bucket save_object
 #' @export
-get_ndvi_data <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
+get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
   if (!as.numeric(year) %in% c(2020, 2021)) {
     stop("`year` has to be 2020 or 2021")
   }
@@ -289,6 +289,97 @@ get_ndvi_data <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
   cli::cli_alert_success("Data successfully processed.")
   report_time(start_time)
   return(ndvi_data)
+}
+
+#' @title Retrieve sentinel-2-l2a images to compute NDVI
+#' @name get_s2a_ndvi
+#'
+#' @description download 3-band NDVI Data
+#' Users can define a city of interest using a bounding box or place name.
+#'
+#' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
+#' defining the area of interest. Optional if `place` is provided.
+#' @param place character or vector. (optional) A single line address,
+#' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
+#' (c("Madrid", "Barcelona")).
+#' @param datetime numeric vector of 2. The time of interest such as
+#' `c("2020-08-01", "2020-09-01")`.
+#' @param cloud_cover numeric.
+#' @param vege_perc numeric.
+#' @param mask logical (optional). Default is `TRUE`. If `TRUE`, masks the
+#' raster data using the given `bbox` or `place`.
+#'
+#' @return A `SpatRaster` object containing NDVI
+#'
+#' @examples
+#' result <- get_s2a_ndvi(
+#'   # place = 'New York'
+#' )
+#' @export
+get_s2a_ndvi(bbox = NULL, place = NULL, datetime = c(),
+             cloud_cover = 10, vege_perc = 0, method = 'first', mask = TRUE) {
+  if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
+    if (!inherits(place, 'NULL')) {
+      pla <- suppressWarnings(nominatimlite::geo_lite_sf(place, points_only = FALSE))
+      pla <- sf::st_transform(pla, crs = 4326)
+      bbox <- pla$geometry
+    } else if (!inherits(bbox, 'NULL')) {
+      if (is.numeric(bbox) && length(bbox) == 4) {
+        bbox <- sf::st_as_sfc(
+          sf::st_bbox(
+            c(xmin = bbox[1],
+              ymin = bbox[2],
+              xmax = bbox[3],
+              ymax = bbox[4]),
+            crs = 4326
+          )
+        )
+      }
+    }
+  } else {
+    return(NULL)
+  }
+  bbox <- sf::st_transform(bbox, 4326)
+
+  if (length(datetime) < 1) {
+    stop("missing `datetime`")
+  }
+
+  cli::cli_alert_info('Start downloading data ...')
+  feafures <- download_sentinel(bbox, datetime[1], datetime[2],
+                                cloud_cover = cloud_cover, vege_perc = vege_perc)
+
+  dates <- c()
+  for (i in 1:length(features)) {
+    dates <- c(dates, strsplit(features[[i]]$properties$datetime, split = "T")[1])
+  }
+  ndvi_list <- list()
+  dates <- unique(dates)
+  for (d in dates) {
+    ndvi_list[[d]] <- list()
+  }
+
+  cli::cli_alert_info('Importing B4 and B8 bads for each period ...')
+  for (i in 1:length(features)) {
+    this_date <- strsplit(features[[i]]$properties$datetime, split = "T")[1]
+    signed_item <- rstac::sign_planetary_computer()(features[[i]])
+    b4_url <- signed_item$assets$B04$href
+    b8_url <- signed_item$assets$B08$href
+    b04_rast <- terra::rast(b04_url)
+    b08_rast <- terra::rast(b08_url)
+    ndvi <- compute_ndvi(b04_rast, b08_rast)
+    ndvi_list[[this_date]][[length(ndvi_list[[this_date]])+1]] <- ndvi
+  }
+  cli::cli_alert_info(if (mask) 'Mosaicing, masking and cropping ...' else 'Mosaicing ')
+  for (d in dates) {
+    ndvi_collection <- terra::sprc(ndvi_list[[d]])
+    ndvi_mosaic <- terra::mosaic(ndvi_collection, method = method)
+    ndvi_list[[d]] <- terra::project(ndvi_mosaic, 'EPSG:4326', method = 'near')
+    if (mask) {
+      ndvi_list[[d]] <- terra::mask(ndvi_list[[d]], )
+      ndvi_list[[d]] <- terra::crop(ndvi_list[[d]], )
+    }
+  }
 }
 
 

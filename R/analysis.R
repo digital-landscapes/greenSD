@@ -1,4 +1,4 @@
-#' Human Exposure to Greenspace
+#' exposure
 #' @description
 #' Computes population-weighted greenspace fraction or human exposure to
 #' greenspace based on a population-weighted exposure model (Chen et al., 2022),
@@ -8,19 +8,24 @@
 #'
 #' @param r A SpatRaster with single/multiple greenspace layer(s), typically
 #' the output from [get_gsdc_data()] or [get_ndvi_data()].
-#' @param source character. Data source for greenspace. Must be either `"gsdc"` (default)
-#' or `"esa"`. If `"esa"`, NDVI percentiles are used to approximate greenspace fraction.
+#' @param source character. Data source for greenspace. Must be either `"gsdc"` (default),
+#' `"esa"`, or `"sentinel"`. If `"esa"` or `"sentinel"`, NDVI will be used to approximate
+#' greenspace. See details.
 #' @param res numeric vector of length 2. The actual spatial resolution (in meters).
 #' Default is `c(10, 10)`.
-#' @param weights numeric vectorof length 3. Weights for combining NDVI percentiles
-#' to estimate greenspace fraction, defaulting to `c(0.75, 0.2, 0.05)`
-#' for p90, p50, and p10.
+#' @param ndvi_threshold numeric vector. Threshold(s) for classify greenspace
+#' based on NDVI layer(s), defaulting to `c(0.3, 0.3, 0.3)`. The length of the thresholds
+#' depends the number of NDVI layers in the input raster `r`. See details.
 #' @param pop_year numeric. Year of the GHSL dataset to use.
 #' Must be one of: 2015, 2020, 2025, or 2030. Default is 2020.
 #' @param radius numeric. Buffer radius (in meters) used for local averaging.
 #' Default is `500`.
 #' @param grid_size numeric. Optional. If provided, output is aggregated to grid cells of
 #' this size (in meters) and returned as an `sf` object.
+#' @param height logical. Whether to compute greenspace volume for population-weighted
+#' greenspace fraction or human exposure to greenspace using Meta's global canopy
+#' height map (Tolan et al., 2024). (The default is FALSE)
+#' @param pop_out logical. Whether return population layer.
 #'
 #' @seealso [get_gsdc_data()], [get_ndvi_data()]
 #'
@@ -29,6 +34,8 @@
 #' population-weighted greenspace exposure values aggregated to each grid polygon.
 #'
 #' @details
+#' When `source = "esa"` or `source = "esa"`, the hard threshold of NDVI values (`"ndvi_threshold"`)
+#' will be used to classify the rsaster into vegetation and non-vegetation categories for each cell.
 #' This function implements the population-weighted greenspace exposure (PWGE) model:
 #'
 #' \enumerate{
@@ -41,19 +48,6 @@
 #'     \deqn{GE^d = \frac{\sum_i P_i \cdot G_i^d}{\sum_i P_i}}
 #' }
 #'
-#' When `source = "esa"`, greenspace fraction \( G_i \) for pixel \( i \) is estimated
-#' from NDVI percentiles as:
-#'
-#' \deqn{
-#' G_i = \min\left( \max\left( w_1 \cdot \text{NDVI}_{p90} + w_2 \cdot \text{NDVI}_{p50} + w_3 \cdot \text{NDVI}_{p10},\ 0 \right),\ 1 \right)
-#' }
-#'
-#' where \( w_1, w_2, w_3 \) are the user-defined weights (default: 0.75, 0.2, 0.05).
-#' This gives more weight to persistent greenness (p90) and mid-season vegetation (p50),
-#' and less to transient low values (p10). Output is bounded within \eqn{[0, 1]}.
-#'
-#' The greenspace fraction \eqn{G_i} for each pixel \eqn{i} is estimated by
-#' combining the NDVI percentiles using a weighted linear model:
 #'
 #'
 #' @references
@@ -67,9 +61,14 @@
 #' International Journal of Digital Earth, 17(1).
 #' https://doi.org/10.1080/17538947.2024.2390454
 #'
+#' Tolan, J., Yang, H. I., Nosarzewski, B., Couairon, G., Vo, H. V., Brandt,
+#' J., ... & Couprie, C. (2024). Very high resolution canopy height maps from
+#' RGB imagery using self-supervised vision transformer and convolutional
+#' decoder trained on aerial lidar. Remote Sensing of Environment, 300, 113888.
+#'
 #' @examples
 #' sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
-#' pwgf <- pop_weg(
+#' pwgf <- exposure(
 #'   # r = sample_data,
 #'   source = 'gsdc',
 #'   pop_year = 2020,
@@ -81,13 +80,15 @@
 #' @importFrom terra rasterize names set.names
 #' @importFrom utils unzip
 #' @export
-pop_weg <- function(r = NULL,
-                      source = 'gsdc',
-                      res = c(10,10),
-                      weights = c( 0.75, 0.2, 0.05),
-                      pop_year = 2020,
-                      radius = 500,
-                      grid_size = NULL) {
+exposure <- function(r = NULL,
+                    source = 'gsdc',
+                    res = c(10,10),
+                    weights = c(0.3, 0.3, 0.3),
+                    pop_year = 2020,
+                    radius = 500,
+                    grid_size = NULL,
+                    height = FALSE,
+                    pop_out = FALSE) {
   if (is.null(r)) {
     return(NULL)
   }
@@ -104,15 +105,26 @@ pop_weg <- function(r = NULL,
   cli::cli_alert_info('Computing greenspace area')
   # compute greenspace area
   if (source == 'esa') {
-    greenspace_fraction_raster <- terra::lapp(r, fun = function(p90, p50, p10) {
-      # Weighted combination with emphasis on median and peak greenness
-      gs <- weights[1] * p90 + weights[2] * p50 + weights[3] * p10
-      gs[gs < 0] <- 0
-      return(pmin(pmax(gs, 0), 1))  # constrain between 0 and 1
-    })
-    r <- greenspace_fraction_raster * res[1] * res[2]
-  } else if (source == 'gsdc') {
-    r <- r * res[1] * res[2]
+    # Approximate binary greenspace indicator
+    r[[1]] <- terra::ifelse(r[[1]] > weights[1], 1, 0)
+    r[[2]] <- terra::ifelse(r[[2]] > weights[2], 1, 0)
+    r[[3]] <- terra::ifelse(r[[3]] > weights[3], 1, 0)
+  }
+
+  # calculate greenspace area
+  r <- r * res[1] * res[2]
+
+  # download chm
+  cli::cli_alert_info('Downloading canopy height data ...')
+  if (height) {
+    bbox_vct <- as.vector(sf::st_bbox(bbox))
+    chm <- suppressMessages(
+      dsmSearch::get_dsm_30(bbox = bbox_vct,
+                            datatype = 'metaCHM')
+    )
+    chm <- terra::project(chm, 'EPSG:4326', method = 'near')
+    avg_chm <- terra::resample(x = chm, y = r, method = 'average')
+    r <- r * avg_chm
   }
 
   cli::cli_alert_info('Calculating the average greenspace fraction')
@@ -184,3 +196,15 @@ pop_weg <- function(r = NULL,
   }
 }
 
+morphology <- function(r, grid_size) {
+
+}
+
+#' @param r A SpatRaster with single/multiple greenspace layer(s), typically
+#' the output from [get_gsdc_data()] or [get_ndvi_data()].
+#' @param ndvi_threshold numeric vector. Threshold(s) for classify greenspace
+#' based on NDVI layer(s), defaulting to `c(0.3, 0.3, 0.3)`. The length of the thresholds
+#' depends the number of NDVI layers in the input raster `r`. See details.
+patch <- function(r, ) {
+
+}

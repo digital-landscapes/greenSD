@@ -35,6 +35,8 @@ Imports:
   nominatimlite,
   utils,
   cli,
+  dsmSearch,
+  rstac,
   magick,
   aws.s3,
   dplyr,
