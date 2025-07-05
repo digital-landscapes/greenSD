@@ -7,6 +7,7 @@
 #' @importFrom stringr str_pad
 #' @importFrom grDevices dev.off png
 #' @importFrom rlang .data
+#' @importFrom rstac post_request stac ext_filter
 
 
 #' @title Get all of the urban areas in the Greenspace Seasonality Data Cube
@@ -349,11 +350,7 @@ download_sentinel <- function (bbox, start_date, end_date,
                                cloud_cover = 10, vege_perc = 0) {
   original_timeout <- getOption('timeout')
   options(timeout=9999)
-  temp_paths <- c()
-  on.exit({
-    options(timeout = original_timeout)
-    unlink(temp_paths, recursive = TRUE)
-  }, add = TRUE)
+  on.exit(options(timeout = original_timeout), add = TRUE)
 
   bbox <- as.vector(sf::st_bbox(bbox))
   polygon <- list(

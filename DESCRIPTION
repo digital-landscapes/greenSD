@@ -1,6 +1,6 @@
 Package: greenSD
 Type: Package
-Title: Access and Analyze Global Greenspace Sptatil Data Using Spatial Queries
+Title: Access and Analyze Global Greenspace Sptatial Data Using Spatial Queries
 Version: 0.1.0
 Authors@R: c(
     person(
@@ -21,7 +21,6 @@ BugReports: https://github.com/billbillbilly/greenSD/issues
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Language: en-US
 Depends: 
     R (>= 4.1)
 Suggests: 

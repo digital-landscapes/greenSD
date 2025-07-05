@@ -150,7 +150,7 @@ get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
 #' @name get_esa_ndvi
 #'
 #' @description download 3-band NDVI Data (NDVI p90, NDVI p50, NDVI p10).
-#' Users can define a city of interest using a bounding box or place name.
+#' Users can define an area of interest using a bounding box or place name.
 #'
 #' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
 #' defining the area of interest. Optional if `place` is provided.
@@ -291,11 +291,10 @@ get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
   return(ndvi_data)
 }
 
-#' @title Retrieve sentinel-2-l2a images to compute NDVI
+#' @title Retrieve Sentinel-2-l2a images to compute NDVI
 #' @name get_s2a_ndvi
-#'
-#' @description download 3-band NDVI Data
-#' Users can define a city of interest using a bounding box or place name.
+#' @description download Sentinel-2-l2a imagery data and compute NDVI.
+#' Users can define an area of interest using a bounding box or place name.
 #'
 #' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
 #' defining the area of interest. Optional if `place` is provided.
@@ -304,20 +303,33 @@ get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
 #' (c("Madrid", "Barcelona")).
 #' @param datetime numeric vector of 2. The time of interest such as
 #' `c("2020-08-01", "2020-09-01")`.
-#' @param cloud_cover numeric.
-#' @param vege_perc numeric.
+#' @param cloud_cover numeric. The percentage of cloud coverage.
+#' @param vege_perc numeric. The percentage of cloud coverage.
+#' @param select character. one of "latest", "earliest", "all". The default
+#' is "latest".
+#' @param method character. A method for mosaicing layers: one of "mean",
+#' "median", "min", "max", "modal", "sum", "first", "last".
 #' @param mask logical (optional). Default is `TRUE`. If `TRUE`, masks the
 #' raster data using the given `bbox` or `place`.
 #'
-#' @return A `SpatRaster` object containing NDVI
+#' @return
+#' A `SpatRaster` object containing (multiple) NDVI layer(s) (for different
+#' period of time) `select = "latest"` or `select = "first"`
+#' (or if `mask = TRUE` and `select = "all"`)
+#'
+#' A `List` of NDVI rasters if `mask = FALSE` and `select = "all"`.
 #'
 #' @examples
 #' result <- get_s2a_ndvi(
-#'   # place = 'New York'
+#'   # place = 'New York',
+#'   datetime = c("2020-08-01", "2020-09-01")
 #' )
 #' @export
-get_s2a_ndvi(bbox = NULL, place = NULL, datetime = c(),
-             cloud_cover = 10, vege_perc = 0, method = 'first', mask = TRUE) {
+get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
+                         cloud_cover = 10, vege_perc = 0, select = "latest",
+                         method = 'first', mask = TRUE) {
+  start_time <- Sys.time()
+
   if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
     if (!inherits(place, 'NULL')) {
       pla <- suppressWarnings(nominatimlite::geo_lite_sf(place, points_only = FALSE))
@@ -371,15 +383,22 @@ get_s2a_ndvi(bbox = NULL, place = NULL, datetime = c(),
     ndvi_list[[this_date]][[length(ndvi_list[[this_date]])+1]] <- ndvi
   }
   cli::cli_alert_info(if (mask) 'Mosaicing, masking and cropping ...' else 'Mosaicing ')
+  if (mask) {bbox_vect <- terra::vect(bbox)}
   for (d in dates) {
     ndvi_collection <- terra::sprc(ndvi_list[[d]])
-    ndvi_mosaic <- terra::mosaic(ndvi_collection, method = method)
+    ndvi_mosaic <- terra::mosaic(ndvi_collection, fun = method)
     ndvi_list[[d]] <- terra::project(ndvi_mosaic, 'EPSG:4326', method = 'near')
     if (mask) {
-      ndvi_list[[d]] <- terra::mask(ndvi_list[[d]], )
-      ndvi_list[[d]] <- terra::crop(ndvi_list[[d]], )
+      ndvi_list[[d]] <- terra::mask(ndvi_list[[d]], bbox_vect)
+      ndvi_list[[d]] <- terra::crop(ndvi_list[[d]], bbox_vect)
     }
   }
+  if (mask) {
+    ndvi_list <- terra::rast(ndvi_list)
+  }
+  cli::cli_alert_success("Data successfully processed.")
+  report_time(start_time)
+  return(ndvi_list)
 }
 
 
@@ -478,9 +497,9 @@ sample_values <- function(samples = NULL, year = NULL, source = 'gsdc') {
 
   # Retrieve raster data
   if (source == 'gsdc') {
-    raster_data <- get_gsdc_data(bbox = bbox, year = year)
+    raster_data <- get_gsdc(bbox = bbox, year = year)
   } else if (source == 'esa') {
-    raster_data <- get_ndvi_data(bbox = bbox, year = year)
+    raster_data <- get_esa_ndvi(bbox = bbox, year = year)
   }
 
   if (is.null(raster_data)) {

@@ -7,7 +7,7 @@
 #' See **Details** for the underlying method and assumptions.
 #'
 #' @param r A SpatRaster with single/multiple greenspace layer(s), typically
-#' the output from [get_gsdc_data()] or [get_ndvi_data()].
+#' the output from [get_gsdc()], [get_esa_ndvi()], or [get_s2a_ndvi()].
 #' @param source character. Data source for greenspace. Must be either `"gsdc"` (default),
 #' `"esa"`, or `"sentinel"`. If `"esa"` or `"sentinel"`, NDVI will be used to approximate
 #' greenspace. See details.
@@ -201,7 +201,7 @@ morphology <- function(r, grid_size) {
 }
 
 #' @param r A SpatRaster with single/multiple greenspace layer(s), typically
-#' the output from [get_gsdc_data()] or [get_ndvi_data()].
+#' the output from [get_gsdc()], [get_esa_ndvi()], or [get_s2a_ndvi()].
 #' @param ndvi_threshold numeric vector. Threshold(s) for classify greenspace
 #' based on NDVI layer(s), defaulting to `c(0.3, 0.3, 0.3)`. The length of the thresholds
 #' depends the number of NDVI layers in the input raster `r`. See details.
