@@ -383,6 +383,33 @@ compute_ndvi <- function(b04, b08) {
 }
 
 #' @noMd
+get_the_date <- function(which, dates) {
+  dfs <- lapply(dates, function(x) {
+      date_split <- strsplit(x, "-")
+      data.frame(
+        year = date_split[1],
+        month = date_split[2],
+        day = date_split[3]
+      )
+    }
+  )
+  combined_df <- do.call(rbind, dfs)
+  if (which == 'earliest') {
+    combined_df <- combined_df[combined_df[,1] == min(combined_df$year), ]
+    combined_df <- combined_df[combined_df[,2] == min(combined_df$month), ]
+    combined_df <- combined_df[combined_df[,3] == min(combined_df$day), ]
+  } else if (which == 'latest') {
+    combined_df <- combined_df[combined_df[,1] == max(combined_df$year), ]
+    combined_df <- combined_df[combined_df[,2] == max(combined_df$month), ]
+    combined_df <- combined_df[combined_df[,3] == max(combined_df$day), ]
+  }
+  return(paste0(combined_df[1,1], "-",
+                combined_df[1,2], "-",
+                combined_df[1,3])
+         )
+}
+
+#' @noMd
 report_time <- function(start_time) {
   end_time <- Sys.time()
   process_time <- as.numeric(difftime(end_time, start_time, units = "secs"))

@@ -18,7 +18,7 @@
 #' @param year numeric. (required) The year of interest.
 #' @param time Character vector of length 2. (optional) Start and end dates in `"MM-DD"` format
 #' (e.g., `c("03-20", "10-15")`). Used to subset the 10-day interval data cube by time.
-#' @param mask logical (optional). Default is `FALSE`. If `TRUE`, masks the
+#' @param mask logical (optional). Default is `TRUE`. If `TRUE`, masks the
 #' raster data using the given `bbox` or `place` if it is specified.
 #'
 #' @return A `SpatRaster` object containing the greenspace seasonality data.
@@ -46,7 +46,7 @@
 #' @importFrom terra mask crop vect
 #' @export
 get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
-                       year = NULL, time = NULL, mask = FALSE) {
+                       year = NULL, time = NULL, mask = TRUE) {
   if (inherits(year, 'NULL')) {
     cli::cli_alert_info("`year` is missing.")
     return(NULL)
@@ -146,17 +146,20 @@ get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
   }
 }
 
-#' @title Download NDVI Data from ESA WorldCover 10m Annual Composites Dataset
-#' @name get_esa_ndvi
+#' @title Download landcover or NDVI Data from ESA WorldCover
+#' 10m Annual Dataset
+#' @name get_esa_wc
 #'
-#' @description download 3-band NDVI Data (NDVI p90, NDVI p50, NDVI p10).
-#' Users can define an area of interest using a bounding box or place name.
+#' @description download 11-class landcover or 3-band NDVI Data
+#' (NDVI p90, NDVI p50, NDVI p10). Users can define an area of interest
+#' using a bounding box or place name.
 #'
 #' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
 #' defining the area of interest. Optional if `place` is provided.
 #' @param place character or vector. (optional) A single line address,
 #' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 #' (c("Madrid", "Barcelona")).
+#' @param datatype character. One of "landcover" and "ndvi".
 #' @param year numeric. The year of interest: `2020` or `2021`. The default is `2021`.
 #' @param mask logical (optional). Default is `TRUE`. If `TRUE`, masks the
 #' raster data using the given `bbox` or `place`.
@@ -165,7 +168,7 @@ get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
 #' (NDVI p90, NDVI p50, NDVI p10)
 #'
 #' @examples
-#' result <- get_ndvi_data(
+#' result <- get_esa_wc(
 #'   # place = 'New York'
 #' )
 #'
@@ -184,7 +187,9 @@ get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
 #' Zenodo. https://doi.org/10.5281/zenodo.7254221
 #' @importFrom aws.s3 get_bucket save_object
 #' @export
-get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
+get_esa_wc <- function(bbox = NULL, place = NULL,
+                       datatype = "landcover",
+                       year = 2021, mask = TRUE) {
   if (!as.numeric(year) %in% c(2020, 2021)) {
     stop("`year` has to be 2020 or 2021")
   }
@@ -216,31 +221,42 @@ get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
   bbox_coords <- sf::st_bbox(bbox)
 
   # List ESA Tile Names by bbox
-  tiles <- get_esa_tile_names(
-    lat_min = bbox_coords["ymin"], lat_max = bbox_coords["ymax"],
-    lon_min = bbox_coords["xmin"], lon_max = bbox_coords["xmax"]
-  )
+  tiles <- if (datatype == 'landcover') {
+    esa_wc_tiles[sf::st_intersects(esa_wc_tiles, bbox, sparse = FALSE), ]$tile
+  } else if (datatype == 'ndvi') {
+    get_esa_tile_names(
+      lat_min = bbox_coords["ymin"], lat_max = bbox_coords["ymax"],
+      lon_min = bbox_coords["xmin"], lon_max = bbox_coords["xmax"]
+    )
+  }
 
   # get tiles
   keys <- c()
   for (i in 1:length(tiles)) {
     t <- tiles[i]
-    f <- aws.s3::get_bucket(
-      bucket = "esa-worldcover-s2",
-      region = "eu-central-1",
-      prefix = paste0('ndvi/',
-                      year, '/',
-                      base::strsplit(t, "W")[[1]][1],
-                      '/ESA_WorldCover_10m_',
-                      year, '_v200_', t, '_NDVI'),
-      max = Inf
-    )
+    if (datatype == 'landcover') {
+      f <- paste0(if (year == 2020) "v100/2020/" else "v200/2021/",
+                  'map/ESA_WorldCover_10m_',
+                  if (year == 2020) '2020_v100_' else '2021_v200_',
+                  t, "_Map.tif")
+      keys <- c(keys, f)
+    } else if (datatype == 'ndvi') {
+      f <- aws.s3::get_bucket(
+        bucket = "esa-worldcover-s2",
+        region = "eu-central-1",
+        prefix = paste0('ndvi/',
+                        year, '/',
+                        base::strsplit(t, "W")[[1]][1],
+                        '/ESA_WorldCover_10m_',
+                        year, '_v200_', t, '_NDVI'),
+        max = Inf
+      )
+      f <- tibble::tibble(
+        key = vapply(f, function(x) x[["Key"]], character(1)),
+      )
 
-    f <- tibble::tibble(
-      key = vapply(f, function(x) x[["Key"]], character(1)),
-    )
-
-    keys <- c(keys, as.character(f$key))
+      keys <- c(keys, as.character(f$key))
+    }
   }
 
   # download data
@@ -256,10 +272,19 @@ get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
   for (i in 1:length(keys)) {
     k <- keys[i]
     temp_tif <- tempfile(fileext = ".tif")
-    aws.s3::save_object(k,
-                        bucket = "esa-worldcover-s2",
-                        region = "eu-central-1",
-                        file = temp_tif)
+    if (datatype == 'landcover') {
+      aws.s3::save_object(
+        object = k,
+        bucket = "esa-worldcover",
+        region = "eu-central-1",
+        file = temp_tif
+      )
+    } else if (datatype == 'ndvi') {
+      aws.s3::save_object(k,
+                          bucket = "esa-worldcover-s2",
+                          region = "eu-central-1",
+                          file = temp_tif)
+    }
     rast_data <- terra::rast(temp_tif)
     result_list[[length(result_list) + 1]] <- rast_data
     temp_paths <- c(temp_paths, temp_tif)
@@ -268,10 +293,10 @@ get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
 
   # merge if there are multiple tiles
   if (length(result_list) == 1) {
-    ndvi_data <- result_list[[1]]
+    out_data <- result_list[[1]]
   } else {
     cli::cli_alert_info('Merging multiple tiles ...')
-    ndvi_data <- do.call(terra::merge, result_list)
+    out_data <- do.call(terra::merge, result_list)
   }
 
   # crop the raster
@@ -282,13 +307,13 @@ get_esa_ndvi <- function(bbox = NULL, place = NULL, year = 2021, mask = TRUE) {
     } else {
       bbox_vect <- bbox
     }
-    ndvi_data <- terra::mask(ndvi_data, bbox_vect)
-    ndvi_data <- terra::crop(ndvi_data, bbox_vect)
+    out_data <- terra::mask(out_data, bbox_vect)
+    out_data <- terra::crop(out_data, bbox_vect)
   }
-  names(ndvi_data) <- c("NDVI_p90", "NDVI_p50", "NDVI_p10")
+  if (datatype == "ndvi") names(out_data) <- c("NDVI_p90", "NDVI_p50", "NDVI_p10")
   cli::cli_alert_success("Data successfully processed.")
   report_time(start_time)
-  return(ndvi_data)
+  return(out_data)
 }
 
 #' @title Retrieve Sentinel-2-l2a images to compute NDVI
@@ -353,7 +378,7 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
   }
   bbox <- sf::st_transform(bbox, 4326)
 
-  if (length(datetime) < 1) {
+  if (length(datetime) <= 1) {
     stop("missing `datetime`")
   }
 
@@ -365,15 +390,22 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
   for (i in 1:length(features)) {
     dates <- c(dates, strsplit(features[[i]]$properties$datetime, split = "T")[1])
   }
-  ndvi_list <- list()
   dates <- unique(dates)
+
+  select_date <- NULL
+  ndvi_list <- list()
   for (d in dates) {
     ndvi_list[[d]] <- list()
   }
-
+  if (select == "latest" || select == "earliest") {
+    select_date <- get_the_date(select, dates)
+  }
   cli::cli_alert_info('Importing B4 and B8 bads for each period ...')
   for (i in 1:length(features)) {
     this_date <- strsplit(features[[i]]$properties$datetime, split = "T")[1]
+    if (!is.null(select_date) && isTRUE(this_date != select_date)) {
+      next
+    }
     signed_item <- rstac::sign_planetary_computer()(features[[i]])
     b4_url <- signed_item$assets$B04$href
     b8_url <- signed_item$assets$B08$href
@@ -399,6 +431,118 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
   cli::cli_alert_success("Data successfully processed.")
   report_time(start_time)
   return(ndvi_list)
+}
+
+
+#' @title Classify land cover using multi-source datasets
+#' @name lc_sem_seg
+#' @description
+#' Generate semantic landcover segmentation based on bands of Sentinel-2-l2a
+#' images by sampling data over the landcover of ESA WorldCover dataset and
+#' using random forest. This function is built based on [get_esa_wc()] and
+#' the foundation of [get_s2a_ndvi()].
+#' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
+#' defining the area of interest. Optional if `place` is provided.
+#' @param place character or vector. (optional) A single line address,
+#' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
+#' (c("Madrid", "Barcelona")).
+#' @param datetime numeric vector of 2. The time of interest such as
+#' `c("2020-08-01", "2020-09-01")`.
+#' @param cloud_cover numeric. The percentage of cloud coverage.
+#' @param vege_perc numeric. The percentage of cloud coverage.
+#' @param zoom numeric. Zoom level of map tile. The default is `18`. To
+#' exclude RGB-based map tiles in training random forest model,
+#' use `zoom = NULL`.
+#' @param sample_size numeric. The total number of locations to be sampled
+#' over land cover classes. The default is `5000`.
+#' @param train numeric. The percentage of samples used for training model.
+#' The default is `0.7`.
+#'
+#' @export
+lc_sem_seg <- function(bbox = NULL, place = NULL, datetime = c(),
+                       cloud_cover = 10, vege_perc = 0, zoom = 18,
+                       sample_size = 5000, trian = 0.7) {
+  start_time <- Sys.time()
+
+  if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
+    if (!inherits(place, 'NULL')) {
+      pla <- suppressWarnings(nominatimlite::geo_lite_sf(place, points_only = FALSE))
+      pla <- sf::st_transform(pla, crs = 4326)
+      bbox <- pla$geometry
+    } else if (!inherits(bbox, 'NULL')) {
+      if (is.numeric(bbox) && length(bbox) == 4) {
+        bbox <- sf::st_as_sfc(
+          sf::st_bbox(
+            c(xmin = bbox[1],
+              ymin = bbox[2],
+              xmax = bbox[3],
+              ymax = bbox[4]),
+            crs = 4326
+          )
+        )
+      }
+    }
+  } else {
+    return(NULL)
+  }
+  bbox <- sf::st_transform(bbox, 4326)
+
+  ## donwload datasets
+  gs <- get_gsdc(bbox = bbox, year = 2021, time = "07-01", mask = TRUE)
+  lc <- get_esa_wc(bbox = bbox, year = 2021, datatype = "landcover")
+  if (!is.null(zoom)) {
+    sat <- maptiles::get_tiles(bbox, provider = "Esri.WorldImagery", zoom = zoom)
+  }
+  s2a_bands <- c()
+  features <- download_sentinel(bbox, datetime[1], datetime[2],
+                                 cloud_cover = cloud_cover,
+                                 vege_perc = vege_perc)
+  dates <- c()
+  for (i in 1:length(features)) {
+    dates <- c(dates, strsplit(features[[i]]$properties$datetime, split = "T")[1])
+  }
+  dates <- unique(dates)
+  select_date <- get_the_date("latest", dates)
+  for (i in 1:length(features)) {
+    this_date <- strsplit(features[[i]]$properties$datetime, split = "T")[1]
+    if (isTRUE(this_date != select_date)) {
+      next
+    }
+    signed_item <- rstac::sign_planetary_computer()(features[[i]])
+    s2a_bands_urls <- c(
+      signed_item$assets$B02$href,
+      signed_item$assets$B03$href,
+      signed_item$assets$B05$href,
+      signed_item$assets$B06$href,
+      signed_item$assets$B07$href,
+      signed_item$assets$B09$href,
+      signed_item$assets$B11$href,
+      signed_item$assets$B12$href
+    )
+
+    ndvi <- compute_ndvi(terra::rast(signed_item$assets$B04$href),
+                         terra::rast(signed_item$assets$B08$href))
+
+  }
+
+  # sample ground truth
+  tree_ <- terra::ifel(lc == 10, lc, NA)
+  shrub_ <- terra::ifel(lc == 10, lc, NA)
+  grass_ <- terra::ifel(lc == 10, lc, NA)
+  crop_ <- terra::ifel(lc == 10, lc, NA)
+  water_ <- terra::ifel(lc == 10, lc, NA)
+
+
+  # prepare training and testing set
+
+  # random forest
+
+  # predict
+
+  # plot model performance (optional)
+
+  # output
+
 }
 
 
@@ -499,7 +643,7 @@ sample_values <- function(samples = NULL, year = NULL, source = 'gsdc') {
   if (source == 'gsdc') {
     raster_data <- get_gsdc(bbox = bbox, year = year)
   } else if (source == 'esa') {
-    raster_data <- get_esa_ndvi(bbox = bbox, year = year)
+    raster_data <- get_esa_wc(bbox = bbox, year = year)
   }
 
   if (is.null(raster_data)) {

@@ -7,21 +7,21 @@
 #' See **Details** for the underlying method and assumptions.
 #'
 #' @param r A SpatRaster with single/multiple greenspace layer(s), typically
-#' the output from [get_gsdc()], [get_esa_ndvi()], or [get_s2a_ndvi()].
-#' @param source character. Data source for greenspace. Must be either `"gsdc"` (default),
-#' `"esa"`, or `"sentinel"`. If `"esa"` or `"sentinel"`, NDVI will be used to approximate
-#' greenspace. See details.
+#' the output from [get_gsdc()], [get_esa_wc()], or [get_s2a_ndvi()].
+#' @param inputtype character. Data type for greenspace. Must be either `"fb"` (default),
+#' `"ndvi"`. If `"fb"`, either fractional or binary (where non-green = 0 and green = 1)
+#' will be taken. If `"ndvi"`, NDVI will be used to approximate greenspace.
 #' @param res numeric vector of length 2. The actual spatial resolution (in meters).
 #' Default is `c(10, 10)`.
-#' @param ndvi_threshold numeric vector. Threshold(s) for classify greenspace
-#' based on NDVI layer(s), defaulting to `c(0.3, 0.3, 0.3)`. The length of the thresholds
+#' @param threshold numeric vector. Threshold(s) for classify greenspace
+#' based on NDVI layer(s), defaulting to `c(0.2, 0.2, 0.2)`. The length of the thresholds
 #' depends the number of NDVI layers in the input raster `r`. See details.
 #' @param pop_year numeric. Year of the GHSL dataset to use.
 #' Must be one of: 2015, 2020, 2025, or 2030. Default is 2020.
 #' @param radius numeric. Buffer radius (in meters) used for local averaging.
 #' Default is `500`.
-#' @param grid_size numeric. Optional. If provided, output is aggregated to grid cells of
-#' this size (in meters) and returned as an `sf` object.
+#' @param grid_size numeric. Optional. If provided, output is aggregated to grid cells
+#' of this size (in meters) and returned as an `sf` object.
 #' @param height logical. Whether to compute greenspace volume for population-weighted
 #' greenspace fraction or human exposure to greenspace using Meta's global canopy
 #' height map (Tolan et al., 2024). (The default is FALSE)
@@ -34,8 +34,9 @@
 #' population-weighted greenspace exposure values aggregated to each grid polygon.
 #'
 #' @details
-#' When `source = "esa"` or `source = "esa"`, the hard threshold of NDVI values (`"ndvi_threshold"`)
-#' will be used to classify the rsaster into vegetation and non-vegetation categories for each cell.
+#' When `type = "ndvi"`, the hard threshold of NDVI values (`"threshold"`)
+#' will be used to classify the rsaster into vegetation and non-vegetation categories
+#' for each cell.
 #' This function implements the population-weighted greenspace exposure (PWGE) model:
 #'
 #' \enumerate{
@@ -47,8 +48,6 @@
 #'   \item Compute overall exposure:
 #'     \deqn{GE^d = \frac{\sum_i P_i \cdot G_i^d}{\sum_i P_i}}
 #' }
-#'
-#'
 #'
 #' @references
 #' Chen, B., Wu, S., Song, Y. et al. Contrasting inequality in human exposure to
@@ -68,7 +67,7 @@
 #'
 #' @examples
 #' sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
-#' pwgf <- exposure(
+#' pwgf <- compute_exposure(
 #'   # r = sample_data,
 #'   source = 'gsdc',
 #'   pop_year = 2020,
@@ -77,13 +76,13 @@
 #'
 #'
 #' @importFrom terra lapp buffer as.points zonal crs res as.polygons
-#' @importFrom terra rasterize names set.names
+#' @importFrom terra rasterize names set.names ifel ext centroids project
 #' @importFrom utils unzip
 #' @export
-exposure <- function(r = NULL,
-                    source = 'gsdc',
+compute_exposure <- function(r = NULL,
+                    inputtype = 'fb',
                     res = c(10,10),
-                    weights = c(0.3, 0.3, 0.3),
+                    threshold = c(0.2, 0.2, 0.2),
                     pop_year = 2020,
                     radius = 500,
                     grid_size = NULL,
@@ -104,19 +103,19 @@ exposure <- function(r = NULL,
 
   cli::cli_alert_info('Computing greenspace area')
   # compute greenspace area
-  if (source == 'esa') {
+  if (inputtype == 'ndvi') {
     # Approximate binary greenspace indicator
-    r[[1]] <- terra::ifelse(r[[1]] > weights[1], 1, 0)
-    r[[2]] <- terra::ifelse(r[[2]] > weights[2], 1, 0)
-    r[[3]] <- terra::ifelse(r[[3]] > weights[3], 1, 0)
+    for (ind in 1:length(threshold)) {
+      r[[ind]] <- terra::ifel(r[[ind]] > threshold[ind], 1, 0)
+    }
   }
 
   # calculate greenspace area
   r <- r * res[1] * res[2]
 
-  # download chm
-  cli::cli_alert_info('Downloading canopy height data ...')
+  # download chm and compute average height in each cell
   if (height) {
+    cli::cli_alert_info('Downloading canopy height data ...')
     bbox_vct <- as.vector(sf::st_bbox(bbox))
     chm <- suppressMessages(
       dsmSearch::get_dsm_30(bbox = bbox_vct,
@@ -196,15 +195,79 @@ exposure <- function(r = NULL,
   }
 }
 
-morphology <- function(r, grid_size) {
-
+#' ndvi_to_sem
+#' @description
+#' Convert ndvi raster data into semantic vegetation areas
+#' @param r A SpatRaster with single greenspace layer, typically
+#' the output from [get_esa_wc()], or [get_s2a_ndvi()].
+#' @param threshold numeric vector of two. Thresholds, defaulting to `c(0.2, 0.5)`,
+#' for classify two types of vegetation areas according to Hashim et al. (2019):
+#' (1) Non-vegetation (Development and bare land): NDVI values generally below `0.2`.
+#' (2) Low vegetation (Shrub and grassland): NDVI values generally between `0.2` and `0.5`.
+#' (2) High vegetation (Temperate and Tropical urban forest ): NDVI values generally
+#' between `0.5` and `1.0`.
+#'
+#' @return List of SpatRaster
+#'
+#' @references
+#' Hashim, H., Abd Latif, Z., & Adnan, N. A. (2019). Urban vegetation classification
+#' with NDVI threshold value method with very high resolution (VHR) Pleiades imagery.
+#' The International Archives of the Photogrammetry, Remote Sensing and Spatial
+#' Information Sciences, 42, 237-240.
+#'
+#' @export
+ndvi_to_sem <- function(r, threshold = c(0.2, 0.5)) {
+  if (is.null(r)) {
+    return(NULL)
+  }
+  r <- terra::ifel(r > threshold[1], r, 0)
+  r <- terra::ifel(r >= threshold[1] & r <= threshold[2], 10, r)
+  r <- terra::ifel(r > threshold[2] & r <= 1, 20, r)
+  r <- r/10
+  return(r)
 }
 
-#' @param r A SpatRaster with single/multiple greenspace layer(s), typically
-#' the output from [get_gsdc()], [get_esa_ndvi()], or [get_s2a_ndvi()].
-#' @param ndvi_threshold numeric vector. Threshold(s) for classify greenspace
-#' based on NDVI layer(s), defaulting to `c(0.3, 0.3, 0.3)`. The length of the thresholds
-#' depends the number of NDVI layers in the input raster `r`. See details.
-patch <- function(r, ) {
+#' compute_morphology
+#' @description
+#' Compute greenspace morphology metrics at patch or grid level,
+#' including average size (AREA_MN), fragmentation (PD), connectedness (COHESION),
+#' aggregation (AI), and complexity of the shape (SHAPE_AM), related to public health
+#' (Wang et al., 2024)
+#' @param p SpatRaster or list of SpatRaster.
+#' @param directions numeric. The number of directions in which patches should be
+#' connected: 4 (default) or 8.
+#' @references
+#' Wang, H., & Tassinary, L. G. (2024). Association between greenspace morphology
+#' and prevalence of non-communicable diseases mediated by air pollution and physical
+#' activity. Landscape and Urban Planning, 242, 104934.
+#'
+#' @importFrom landscapemetrics lsm_p_perim lsm_p_area
+#' @export
+compute_morphology <- function(p = NULL, directions = 4, grid_size = NULL) {
+  # generate a grid over patches
+  if (!is.null(grid_size)) {
+    template <- terra::rast(terra::ext(p[[1]]),
+                            resolution = grid_size,
+                            crs = terra::crs(r_proj))
+    grid <- terra::as.polygons(template)
+    grid_wgs84 <- terra::project(grid, "EPSG:4326")
+  }
+
+  bbox <- sf::st_as_sfc(sf::st_bbox(as.vector(terra::ext(p[[1]]))))
+  sf::st_crs(bbox) <- 4326
+  bbox <- sf::st_transform(bbox, crs = 4326)
+
+  # compute average height for each patch
+  cli::cli_alert_info('Downloading canopy height data ...')
+  bbox_vct <- as.vector(sf::st_bbox(bbox))
+  chm <- suppressMessages(
+    dsmSearch::get_dsm_30(bbox = bbox_vct,
+                          datatype = 'metaCHM')
+  )
+  chm <- terra::project(chm, 'EPSG:4326', method = 'near')
+  avg_chm <- terra::resample(x = chm, y = p, method = 'average')
+
+  PERIM <- landscapemetrics::lsm_p_perim(p, directions = 4)
+  AREA <- landscapemetrics::lsm_p_area(p, directions = 4)
 
 }

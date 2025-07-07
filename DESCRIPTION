@@ -36,6 +36,7 @@ Imports:
   cli,
   dsmSearch,
   rstac,
+  landscapemetrics,
   magick,
   aws.s3,
   dplyr,

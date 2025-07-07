@@ -7,22 +7,25 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 ## Overview
-Provides tools to access and analyze multi-band greenspace seasonality data cubes 
-(available for 1,028 major global cities) and global NDVI data from the ESA 
-WorldCover 10m Annual Composites Dataset. Users can download data using bounding 
-boxes, city names, or coordinates, extract values at specific points, and filter 
-by year or seasonal time window. The package also supports calculating human 
+greenSD provides tools to access and analyze multi-band greenspace 
+seasonality data cubes (available for 1,028 major global cities) and 
+global land cover/NDVI data from the ESA WorldCover 10m Dataset. 
+Users can download data using bounding boxes, city names, or coordinates, 
+extract values at specific points, and filter by year or seasonal time 
+window. Moreover, the package. The package also supports calculating human 
 exposure to greenspace using a population-weighted greenspace exposure model 
-based on Global Human Settlement Layer (GHSL) population data.
+based on Global Human Settlement Layer (GHSL) population data and computing 
+a set of greenspace morphology metrics at patch or grid levels.
 
 ## Features
 🌍 Access global greenspace datasets by bounding box, city name, or geographic coordinates
 - Seasonal greenspace data cubes for 1028 major global cities
 - 10m NDVI composite data from ESA WorldCover
 
-🧮 Greenspace metrics calculation with GHSL population data
+🧮 Greenspace metrics calculation
 - Estimate population-weighted greenspace fraction (PWGF)
 - Calculate population-weighted greenspace exposure (PWGE) 
+- Morphology
 
 📊 Visualization
 - Export multi-layer data as animated GIFs
@@ -41,14 +44,14 @@ devtools::install_github("billbillbilly/greenSD")
 #### 1 Get data from Greenspace Seasonality Data Cube
 ```r
 # by bounding box
-gs <- greenSD::get_gsdc_data(place = 'Detroit', year = 2022)
+gs <- greenSD::get_gsdc(place = 'Detroit', year = 2022)
 # by place name
-gs <- greenSD::get_gsdc_data(location = c(-83.10215 42.38342), year = 2022)
+gs <- greenSD::get_gsdc(location = c(-83.10215 42.38342), year = 2022)
 # by coordinates (point)
-gs <- greenSD::get_gsdc_data(location = c(-83.10215 42.38342), year = 2022)
+gs <- greenSD::get_gsdc(location = c(-83.10215 42.38342), year = 2022)
 # by UID and time range
 ## greenSD::check_available_cities()
-gs <- greenSD::get_gsdc_data(UID = 1825, year = 2022, time = c("03-01", "09-01"))
+gs <- greenSD::get_gsdc(UID = 1825, year = 2022, time = c("03-01", "09-01"))
 
 # Extract values with sampled locations
 boundary <- greenSD::check_urban_boundary(uid = 1825, plot = FALSE)
