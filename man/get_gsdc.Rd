@@ -30,8 +30,9 @@ use \code{\link[=check_available_urban]{check_available_urban()}}}
 
 \item{year}{numeric. (required) The year of interest.}
 
-\item{time}{Character vector of length 2. (optional) Start and end dates in \code{"MM-DD"} format
-(e.g., \code{c("03-20", "10-15")}). Used to subset the 10-day interval data cube by time.}
+\item{time}{Character vector of length 2 or character. (optional) Start and end dates in
+\code{"MM-DD"} format (e.g., \code{c("03-20", "10-15")} or \code{"07-10"}). Used to subset the 10-day
+interval data cube by time.}
 
 \item{mask}{logical (optional). Default is \code{TRUE}. If \code{TRUE}, masks the
 raster data using the given \code{bbox} or \code{place} if it is specified.}

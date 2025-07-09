@@ -18,7 +18,7 @@ in the Greenspace Seasonality Data Cube dataset.
 }
 \note{
 You can explore all available urban areas in an interacive map at:
-\url{https://github.com/billbillbilly/greenSD/blob/main/docs/city_urban_boundaries.geojson}
+\url{https://github.com/billbillbilly/greenSD/blob/main/scripts/city_urban_boundaries.geojson}
 }
 \examples{
 check_available_urban(test = TRUE)

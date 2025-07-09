@@ -2,17 +2,19 @@
 % Please edit documentation in R/core.R
 \name{lc_sem_seg}
 \alias{lc_sem_seg}
-\title{Classify land cover using multi-source datasets}
+\title{Classify land cover based on multi-source imagery datasets}
 \usage{
 lc_sem_seg(
   bbox = NULL,
   place = NULL,
+  year = NULL,
   datetime = c(),
   cloud_cover = 10,
   vege_perc = 0,
-  zoom = 18,
-  sample_size = 5000,
-  trian = 0.7
+  zoom = 17,
+  sample_size = 10000,
+  trian_split = 0.7,
+  test = TRUE
 )
 }
 \arguments{
@@ -23,26 +25,67 @@ defining the area of interest. Optional if \code{place} is provided.}
 e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 (c("Madrid", "Barcelona")).}
 
+\item{year}{numeric. The year of interest: \code{2020} or \code{2021} for retrieving
+land cover from ESA WorldCover dataset. The default is \code{2021}.}
+
 \item{datetime}{numeric vector of 2. The time of interest such as
-\code{c("2020-08-01", "2020-09-01")}.}
+\code{c("2020-08-01", "2020-09-01")} for retrieving Sentinel-2-l2a images.}
 
-\item{cloud_cover}{numeric. The percentage of cloud coverage.}
+\item{cloud_cover}{numeric. The percentage of cloud coverage for retrieving
+Sentinel-2-l2a images.}
 
-\item{vege_perc}{numeric. The percentage of cloud coverage.}
+\item{vege_perc}{numeric. The percentage of cloud coverage for retrieving
+Sentinel-2-l2a images.}
 
-\item{zoom}{numeric. Zoom level of map tile. The default is \code{18}. To
+\item{zoom}{numeric. Zoom level of map tile. The default is \code{17}. To
 exclude RGB-based map tiles in training random forest model,
 use \code{zoom = NULL}.}
 
 \item{sample_size}{numeric. The total number of locations to be sampled
-over land cover classes. The default is \code{5000}.}
+over land cover classes. The default is \code{10000}.}
 
-\item{train}{numeric. The percentage of samples used for training model.
+\item{trian_split}{numeric. The percentage of samples used for training model.
 The default is \code{0.7}.}
+
+\item{test}{logical. Whether to test the performance of randomforests
+model. The default is \code{TRUE}.}
+
+\item{cores}{numeric. If cores > 1, parallel processing will be used to
+generate land cover.}
+}
+\value{
+If \code{test = FALSE}, a land cover raster.
+If \code{test = TRUE}, a list includes a land cover raster, model performance table,
+and predictor importance plot.
 }
 \description{
-Generate semantic landcover segmentation based on bands of Sentinel-2-l2a
-images by sampling data over the landcover of ESA WorldCover dataset and
-using random forest. This function is built based on \code{\link[=get_esa_wc]{get_esa_wc()}} and
-the foundation of \code{\link[=get_s2a_ndvi]{get_s2a_ndvi()}}.
+Generate finer-resolution semantic landcover segmentation based on bands
+of Sentinel-2-l2a images by sampling data over the landcover of ESA WorldCover
+dataset and using random forest. The semantic segmentation includes the same classes
+as ESA WorldCover dataset with additional class of building (See details).
+}
+\details{
+This function uses ESA WorldCover classification with additional class of building :\tabular{llll}{
+   Code \tab Land Cover Class \tab RGB Color \tab Description \cr
+   10 \tab Tree cover \tab (0, 100, 0) \tab Geographic areas dominated by trees with a cover of 10\% or more. Includes plantations, mangroves. \cr
+   20 \tab Shrubland \tab (255, 187, 34) \tab Areas dominated by shrubs with cover ≥10\%. Includes evergreen/deciduous. \cr
+   30 \tab Grassland \tab (255, 255, 76) \tab Dominated by herbaceous plants with cover ≥10\%. Includes savannas, pastures, steppes. \cr
+   40 \tab Cropland \tab (240, 150, 255) \tab Areas with annual crops sown/planted and harvested within 12 months. \cr
+   50 \tab Built-up \tab (250, 0, 0) \tab Built environment: buildings, roads, other man-made structures. \cr
+   60 \tab Bare/sparse vegetation \tab (180, 180, 180) \tab Lands with exposed soil/sand/rock and <10\% vegetation. \cr
+   70 \tab Snow and Ice \tab (240, 240, 240) \tab Areas permanently covered by snow or glaciers. \cr
+   80 \tab Permanent water bodies \tab (0, 100, 200) \tab Lakes, rivers, reservoirs covered with water >9 months/year. \cr
+   90 \tab Herbaceous wetland \tab (0, 150, 160) \tab Wetlands with permanent/seasonal flooding and herbaceous vegetation. \cr
+   95 \tab Mangroves \tab (0, 207, 117) \tab Salt-tolerant trees/shrubs in coastal intertidal zones. \cr
+   100 \tab Moss and lichen \tab (250, 230, 160) \tab Lichen/moss-dominated lands, often with symbiotic fungi and algae. \cr
+   105 \tab Buildings \tab (0, 0, 0) \tab Buildings \cr
+}
+}
+\examples{
+sem <- lc_sem_seg(
+   # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
+   datetime c("2024-06-15", "2024-08-15"),
+   year = 2021
+)
+
 }

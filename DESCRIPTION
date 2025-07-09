@@ -9,13 +9,13 @@ Authors@R: c(
       email = "xiaohaoy111@gmail.com",
       role = c("aut", "cre", "cph")
     ))
-Description: Provides tools to access and analyze multi-band greenspace 
-  seasonality data cubes (available for 1,028 major global cities) and global 
-  NDVI data from the ESA WorldCover 10m Annual Composites Dataset. Users can 
-  download data using bounding boxes, city names, or coordinates, extract values 
-  at specific points, and filter by year or seasonal time window. 
-  The package also supports calculating human exposure to greenspace using a 
-  population-weighted greenspace exposure model based on GHSL population data.
+Description: greenSD provides tools to access and analyze multi-band greenspace 
+  seasonality data cubes (available for 1,028 major global cities), global 
+  NDVI/land cover data from the ESA WorldCover 10m Dataset, and Sentinel-2-l2a 
+  images. Users can download data using bounding boxes, city names, and filter 
+  by year or seasonal time window. The package also supports calculating human 
+  exposure to greenspace using a population-weighted greenspace exposure model 
+  based on GHSL population data.
 URL: https://github.com/billbillbilly/greenSD
 BugReports: https://github.com/billbillbilly/greenSD/issues
 License: GPL-3
@@ -31,11 +31,15 @@ VignetteBuilder: knitr
 Imports:
   terra,
   sf,
+  parallel,
+  caret,
+  purrr,
   nominatimlite,
   utils,
   cli,
   dsmSearch,
   rstac,
+  tidyverse,
   landscapemetrics,
   magick,
   aws.s3,

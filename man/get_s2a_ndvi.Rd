@@ -12,7 +12,8 @@ get_s2a_ndvi(
   vege_perc = 0,
   select = "latest",
   method = "first",
-  mask = TRUE
+  mask = TRUE,
+  output_bands = NULL
 )
 }
 \arguments{
@@ -26,18 +27,26 @@ e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 \item{datetime}{numeric vector of 2. The time of interest such as
 \code{c("2020-08-01", "2020-09-01")}.}
 
-\item{cloud_cover}{numeric. The percentage of cloud coverage.}
+\item{cloud_cover}{numeric. Threshould for the percentage of cloud coverage.
+Desfault is 10.}
 
-\item{vege_perc}{numeric. The percentage of cloud coverage.}
+\item{vege_perc}{numeric. Threshould for the percentage of vegetation coverage.
+Desfault is 0.}
 
 \item{select}{character. one of "latest", "earliest", "all". The default
 is "latest".}
 
 \item{method}{character. A method for mosaicing layers: one of "mean",
-"median", "min", "max", "modal", "sum", "first", "last".}
+"median", "min", "max", "modal", "sum", "first", "last". The default
+is "first".}
 
 \item{mask}{logical (optional). Default is \code{TRUE}. If \code{TRUE}, masks the
 raster data using the given \code{bbox} or \code{place}.}
+
+\item{output_bands}{vector. A list of band names (\code{c('B04', 'B08')}).
+The default is \code{NULL}. If \code{output_bands} is specified, NDVI will not
+be computed and only the specified bands will be returned.
+All available bands can be found \href{https://docs.sentinel-hub.com/api/latest/data/sentinel-2-l2a/#available-bands-and-data}{here}}
 }
 \value{
 A \code{SpatRaster} object containing (multiple) NDVI layer(s) (for different

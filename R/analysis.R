@@ -257,15 +257,15 @@ compute_morphology <- function(p = NULL, directions = 4, grid_size = NULL) {
   sf::st_crs(bbox) <- 4326
   bbox <- sf::st_transform(bbox, crs = 4326)
 
-  # compute average height for each patch
-  cli::cli_alert_info('Downloading canopy height data ...')
-  bbox_vct <- as.vector(sf::st_bbox(bbox))
-  chm <- suppressMessages(
-    dsmSearch::get_dsm_30(bbox = bbox_vct,
-                          datatype = 'metaCHM')
-  )
-  chm <- terra::project(chm, 'EPSG:4326', method = 'near')
-  avg_chm <- terra::resample(x = chm, y = p, method = 'average')
+  # # compute average height for each patch
+  # cli::cli_alert_info('Downloading canopy height data ...')
+  # bbox_vct <- as.vector(sf::st_bbox(bbox))
+  # chm <- suppressMessages(
+  #   dsmSearch::get_dsm_30(bbox = bbox_vct,
+  #                         datatype = 'metaCHM')
+  # )
+  # chm <- terra::project(chm, 'EPSG:4326', method = 'near')
+  # avg_chm <- terra::resample(x = chm, y = p, method = 'average')
 
   PERIM <- landscapemetrics::lsm_p_perim(p, directions = 4)
   AREA <- landscapemetrics::lsm_p_area(p, directions = 4)

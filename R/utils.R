@@ -22,7 +22,7 @@
 #' Sci Data 11, 909 (2024). https://doi.org/10.1038/s41597-024-03746-7
 #' @note
 #' You can explore all available urban areas in an interacive map at:
-#' \url{https://github.com/billbillbilly/greenSD/blob/main/docs/city_urban_boundaries.geojson}
+#' \url{https://github.com/billbillbilly/greenSD/blob/main/scripts/city_urban_boundaries.geojson}
 #' @examples
 #' check_available_urban(test = TRUE)
 #' @export
@@ -30,7 +30,7 @@ check_available_urban <- function(test = FALSE) {
   if (isTRUE(test)) {
     return(NULL)
   }
-  cli::cli_alert_info("You can also check all available cities in an interacive map here: https://github.com/billbillbilly/greenSD/blob/main/docs/city_urban_boundaries.geojson")
+  cli::cli_alert_info("You can also check all available cities in an interacive map here: https://github.com/billbillbilly/greenSD/blob/main/scripts/city_urban_boundaries.geojson")
   return(available_cities)
 }
 
@@ -54,7 +54,7 @@ check_urban_boundary <- function(uid = NULL, plot = TRUE, test = FALSE) {
     return(NULL)
   }
   boundary <- suppressMessages(
-    sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/main/docs/city_urban_boundaries.geojson')
+    sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/main/scripts/city_urban_boundaries.geojson')
   )
   b <- boundary[boundary$UID == uid, ]
   plot(b$geometry)
@@ -176,7 +176,7 @@ get_band_index_by_time <- function(time, year) {
 #' @noMd
 check_overlap <- function(geometry) {
   boundary <- suppressMessages(
-    sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/main/docs/city_urban_boundaries.geojson')
+    sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/main/scripts/city_urban_boundaries.geojson')
   )
   intersecting <- boundary[sf::st_intersects(boundary, geometry, sparse = FALSE), ]
   return(intersecting$UID[1])
@@ -336,7 +336,7 @@ download_GHSL <- function(bbox, year) {
     pop <- terra::mask(pop, bbox_moll)
     pop <- terra::crop(pop, bbox_moll)
     cli::cli_alert_info('Re-projecting ...')
-    pop <- terra::project(pop, paste0('EPSG:', 4326), method = 'near')
+    pop <- terra::project(pop, paste0('EPSG:', 4326), method = 'bilinear')
 
     cli::cli_alert_success('Finished cropping and re-projecting population data')
     return(pop)
@@ -385,7 +385,7 @@ compute_ndvi <- function(b04, b08) {
 #' @noMd
 get_the_date <- function(which, dates) {
   dfs <- lapply(dates, function(x) {
-      date_split <- strsplit(x, "-")
+      date_split <- strsplit(x, "-")[[1]]
       data.frame(
         year = date_split[1],
         month = date_split[2],
