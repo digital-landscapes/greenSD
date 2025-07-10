@@ -84,7 +84,7 @@ This function uses ESA WorldCover classification with additional class of buildi
 \examples{
 sem <- lc_sem_seg(
    # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
-   datetime c("2024-06-15", "2024-08-15"),
+   datetime = c("2024-06-15", "2024-08-15"),
    year = 2021
 )
 

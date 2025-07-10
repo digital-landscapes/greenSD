@@ -345,9 +345,9 @@ get_esa_wc <- function(bbox = NULL, place = NULL,
 #' (c("Madrid", "Barcelona")).
 #' @param datetime numeric vector of 2. The time of interest such as
 #' `c("2020-08-01", "2020-09-01")`.
-#' @param cloud_cover numeric. Threshould for the percentage of cloud coverage.
+#' @param cloud_cover numeric. Threshold for the percentage of cloud coverage.
 #' Desfault is 10.
-#' @param vege_perc numeric. Threshould for the percentage of vegetation coverage.
+#' @param vege_perc numeric. Threshold for the percentage of vegetation coverage.
 #' Desfault is 0.
 #' @param select character. one of "latest", "earliest", "all". The default
 #' is "latest".
@@ -440,7 +440,9 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
     if (!is.null(output_bands)) {
       for (b in output_bands) {
         url <- signed_item$assets[[b]]$href
-        band_list[[this_date]][[b]][[length(band_list[[this_date]][[b]])+1]] <- terra::rast(url, names = b)
+        temp <- terra::rast(url)
+        names(temp) <- b
+        band_list[[this_date]][[b]][[length(band_list[[this_date]][[b]])+1]] <- temp
       }
     } else {
       b4_url <- signed_item$assets$B04$href
@@ -492,6 +494,216 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
   return(ndvi_list)
 }
 
+
+#' @title Sample Greenspace Values from Greenspace Seasonality Data Cube or
+#' ESA WorldCover 10m Annual Composites Dataset
+#' @name sample_values
+#'
+#' @description Samples values by locatoins from the Greenspace Seasonality Data Cube
+#' developed by Wu et al. (2024) or ESA WorldCover 10m Annual Composites Dataset
+#' by Zanaga et al. (2021).
+#'
+#' @param samples A list, matrix, `data.frame`, or `sf` object of point locations.
+#' Can be a list of length-2 numeric vectors (`list(c(lon, lat))`),
+#' a 2-column matrix or data.frame, or an `sf` object with POINT geometry in any CRS.
+#' @param time numeric or vector. The time of interest. See Detail.
+#' @param source character. The data source for extracting greenspace values:
+#' `gsdc` for Greenspace Seasonality Data Cube, `esa_ndvi`or `esa_landcover` for
+#' ESA WorldCover 10m Annual Dataset, and `s2a_ndvi` or `s2a_bands` for
+#' Sentinel-2-l2a image data. The default is `gsdc`.
+#'
+#' @return A `data.frame` containing greenspace values extracted at each point
+#' across all bands. Each row corresponds to a sample location;
+#' columns represent band values.
+#'
+#' @details
+#' `time`: For the greenspace seasonality data cube, only years from 2019 to 2022
+#'  are availabe. For ESA WorldCover 10m Annual Composites Dataset, only 2020
+#'  and 2021 are available.
+#'
+#' @note
+#' For sampling data from Greenspace Seasonality Data Cube `samples` must be
+#' located within the same boundary of an available city in the data cube.
+#' Use [check_available_urban()] and [check_urban_boundary()] to see supported
+#' cities and their boundaries.
+#'
+#' @examples
+#' # see supported urban areas and their boundaries
+#' check_available_urban()
+#' boundary <- check_urban_boundary(uid = 11)
+#'
+#' # sample locations with in the boundary
+#' samples <- sf::st_sample(boundary, size = 20)
+#'
+#' # extract values
+#' gs_samples <- sample_values(samples,
+#'                             # time = 2022
+#'                            )
+#'
+#' @details
+#' The Greenspace Data Cube is organized into 36 bands per year,
+#' each representing a 10-day interval.
+#'
+#' @references
+#' Wu, S., Song, Y., An, J. et al. High-resolution greenspace dynamic
+#' data cube from Sentinel-2 satellites over 1028 global major cities.
+#' Sci Data 11, 909 (2024). https://doi.org/10.1038/s41597-024-03746-7
+#'
+#' Zanaga, D., Van De Kerchove, R., De Keersmaecker, W., Souverijns, N.,
+#' Brockmann, C., Quast, R., Wevers, J., Grosu, A., Paccini, A., Vergnaud, S.,
+#' Cartus, O., Santoro, M., Fritz, S., Georgieva, I., Lesiv, M., Carter, S.,
+#' Herold, M., Li, L., Tsendbazar, N.-E., … Arino, O. (2021).
+#' ESA WorldCover 10 m 2020 v100 (Version v100).
+#' Zenodo. https://doi.org/10.5281/zenodo.5571936
+#'
+#' Zanaga, D., Van De Kerchove, R., Daems, D., De Keersmaecker, W., Brockmann,
+#' C., Kirches, G., Wevers, J., Cartus, O., Santoro, M., Fritz, S., Lesiv, M.,
+#' Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
+#' ESA WorldCover 10 m 2021 v200 (Version v200).
+#' Zenodo. https://doi.org/10.5281/zenodo.7254221
+#'
+#' @importFrom sf st_drop_geometry
+#' @importFrom terra extract vect
+#' @export
+sample_values <- function(samples = NULL, time = NULL,
+                          source = 'gsdc', output_bands = NULL,
+                          cloud_cover = 10, vege_perc = 0,
+                          select = "latest", method = 'first') {
+  if (is.null(time)) {
+    return(NULL)
+  }
+
+  # Convert samples to sf POINTs
+  if (inherits(samples, "sf")) {
+    sf_points <- sf::st_transform(samples, 4326)
+  } else if (is.list(samples)) {
+    coords <- do.call(rbind, samples)
+    sf_points <- sf::st_as_sf(data.frame(x = coords[,1], y = coords[,2]),
+                              coords = c("x", "y"), crs = 4326)
+  } else if (is.matrix(samples) || is.data.frame(samples)) {
+    if (ncol(samples) != 2) stop("`samples` must have two columns: lon and lat.")
+    sf_points <- sf::st_as_sf(data.frame(x = samples[,1], y = samples[,2]),
+                              coords = c("x", "y"), crs = 4326)
+  } else {
+    stop("`samples` must be a list, matrix, data.frame, or sf POINT object.")
+  }
+
+  # Get bounding box and pad slightly to ensure coverage
+  bbox <- as.numeric(sf::st_bbox(sf_points)) + c(-0.01, -0.01, 0.01, 0.01)
+
+  # Retrieve raster data
+  if (source == 'gsdc') {
+    raster_data <- get_gsdc(bbox = bbox, year = time, mask = FALSE)
+  } else if (source == 'esa_ndvi') {
+    raster_data <- get_esa_wc(bbox = bbox, datatype = 'ndvi', year = time, mask = FALSE)
+  } else if (source == 'esa_landcover') {
+    raster_data <- get_esa_wc(bbox = bbox, datatype = 'landcover', year = time, mask = FALSE)
+  } else if (source == 's2a_ndvi') {
+    raster_data <- get_s2a_ndvi(bbox = bbox, datetime = time,
+                 cloud_cover = cloud_cover,
+                 vege_perc = vege_perc,
+                 select = select,
+                 method = method,
+                 mask = FALSE)
+  } else if (source == 's2a_bands')
+    raster_data <- get_s2a_ndvi(bbox = bbox, datetime = time,
+                 cloud_cover = cloud_cover,
+                 vege_perc = vege_perc,
+                 select = select,
+                 method = method,
+                 mask = FALSE,
+                 output_bands = output_bands)
+  if (is.null(raster_data)) {
+    cli::cli_alert_warning("No raster data found for the specified location/year.")
+    return(NULL)
+  }
+
+  # Extract values at point locations
+  if (source == 's2a_bands') {
+
+  } else {
+    values <- terra::extract(raster_data, terra::vect(sf_points))
+  }
+
+  # Combine with coordinates (omit ID column)
+  result <- sf::st_drop_geometry(sf_points)
+  result <- cbind(result, values[,-1])
+
+  return(result)
+}
+
+#' @title Classify greenspace based on map tile images
+#' @name lc_sem_seg
+#' @description
+#' Generate high-resolution greenspace segmentation using map tiles
+#' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
+#' defining the area of interest. Optional if `place` is provided.
+#' @param place character or vector. (optional) A single line address,
+#' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
+#' (c("Madrid", "Barcelona")).
+#' @param zoom numeric. Zoom level of map tile. The default is `17`. To
+#' exclude RGB-based map tiles in training random forest model,
+#' use `zoom = NULL`.
+#' @export
+tile_to_green <- function(bbox, place, zoom, source = 'esri') {
+  start_time <- Sys.time()
+
+  if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
+    if (!inherits(place, 'NULL')) {
+      pla <- suppressWarnings(nominatimlite::geo_lite_sf(place, points_only = FALSE))
+      pla <- sf::st_transform(pla, crs = 4326)
+      bbox <- pla$geometry
+    } else if (!inherits(bbox, 'NULL')) {
+      if (is.numeric(bbox) && length(bbox) == 4) {
+        bbox <- sf::st_as_sfc(
+          sf::st_bbox(
+            c(xmin = bbox[1],
+              ymin = bbox[2],
+              xmax = bbox[3],
+              ymax = bbox[4]),
+            crs = 4326
+          )
+        )
+      }
+    }
+  } else {
+    return(NULL)
+  }
+  bbox <- sf::st_transform(bbox, 4326)
+  if (source == "gmt") {
+    p <- maptiles::create_provider(name = "gmt",
+                                   url = "http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}")
+  }
+  t <- maptiles::get_tiles(bbox,
+                             provider = if (source == "gmt") p else "Esri.WorldImagery",
+                             zoom = zoom)
+  names(t) <- c('r', 'g', 'b')
+
+  redThreImgU <- t[[1]]/255 < 0.6
+  greenThreImgU <- t[[2]]/255 < 0.9
+  blueThreImgU <- t[[3]]/255 < 0.6
+  shadowRedU <- t[[1]]/255 < 0.3
+  shadowGreenU <- t[[2]]/255 < 0.3
+  shadowBlueU <- t[[3]]/255 < 0.3
+
+  greenImg1 = redThreImgU * blueThreImgU * greenThreImgU
+  greenImgShadow1 = shadowRedU * shadowGreenU * shadowBlueU
+
+  threImgU <-  redThreImgU * blueThreImgU * greenThreImgU
+  imgShadow <- shadowRedU * shadowGreenU * shadowBlueU
+
+  g_r_dif <- t[[2]]/255 - t[[1]]/255
+  g_b_dif <- t[[2]]/255 - t[[3]]/255
+  ExG = g_r_dif + g_b_dif
+  diffImg = g_r_dif * g_b_dif
+
+  threshold <- 0.5
+  greenImg3 = diffImg > 0.0
+  greenImg4 = g_r_dif > 0
+  greenImg2 = ExG > threshold
+  greenImgShadow2 = ExG > 0.05
+  greenImg = greenImg1*greenImg2 + greenImgShadow2*greenImgShadow1
+}
 
 #' @title Classify land cover based on multi-source imagery datasets
 #' @name lc_sem_seg
@@ -551,7 +763,7 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
 #' @examples
 #' sem <- lc_sem_seg(
 #'    # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
-#'    datetime c("2024-06-15", "2024-08-15"),
+#'    datetime = c("2024-06-15", "2024-08-15"),
 #'    year = 2021
 #' )
 #'
@@ -562,6 +774,7 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
 #' @importFrom purrr reduce
 #' @importFrom parallel detectCores
 #' @importFrom grDevices rgb
+#' @importFrom stats predict
 #'
 #' @export
 lc_sem_seg <- function(bbox = NULL, place = NULL,
@@ -597,6 +810,7 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
   ## donwload datasets
   if (!is.null(zoom)) {
     sat <- maptiles::get_tiles(bbox, provider = "Esri.WorldImagery", zoom = zoom)
+    names(sat) <- c('r', 'g', 'b')
   }
   lc <- get_esa_wc(bbox = bbox, year = year, datatype = "landcover")
   building <- overturemapsr::record_batch_reader("building", bbox = as.numeric(sf::st_bbox(bbox)))
@@ -613,10 +827,12 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
   names(ndvi) <- 'ndvi'
 
   # sample ground truth and predictors
-  samples_vect <- terra::spatSample(lc_,
-                                    size = as.integer(sample_size/length(terra::unique(lc_)[[1]])),
-                                    method = "stratified",
-                                    as.points = TRUE)
+  samples_vect <- suppressWarnings(
+    terra::spatSample(lc_,
+                      size = as.integer(sample_size/length(terra::unique(lc_)[[1]])),
+                      method = "stratified",
+                      as.points = TRUE)
+  )
   label_set <- terra::extract(lc_, samples_vect, method = 'simple')
   if (!is.null(zoom)) {rgb_set <- terra::extract(sat, samples_vect, method = 'simple')}
   bands_set <- terra::extract(terra::sprc(bands), samples_vect, method = 'simple')
@@ -656,7 +872,7 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
     cli::cli_alert_info('Testing model ...')
     x_test <- data_test[,2:ncol(data_test)]
     y_test <- data_test[,1]
-    predictions <- caret::predict(rf, x_test)
+    predictions <- stats::predict(rf, x_test)
     cm <- caret::confusionMatrix(predictions, y_test)
     importance <- caret::varImp(rf)
   }
