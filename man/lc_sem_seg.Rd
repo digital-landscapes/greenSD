@@ -2,19 +2,32 @@
 % Please edit documentation in R/core.R
 \name{lc_sem_seg}
 \alias{lc_sem_seg}
-\title{Classify land cover based on multi-source imagery datasets}
+\alias{get_tile_green}
+\title{Classify greenspace based on map tile images}
 \usage{
+get_tile_green(
+  bbox = NULL,
+  place = NULL,
+  zoom = 17,
+  provider = "esri",
+  year = NULL
+)
+
 lc_sem_seg(
   bbox = NULL,
   place = NULL,
-  year = NULL,
+  label_year = NULL,
+  tiles = c("esri", "eox"),
+  tile_year = NULL,
+  zoom = 17,
+  s2a = NULL,
   datetime = c(),
   cloud_cover = 10,
   vege_perc = 0,
-  zoom = 17,
   sample_size = 10000,
   trian_split = 0.7,
-  test = TRUE
+  test = TRUE,
+  cores = TRUE
 )
 }
 \arguments{
@@ -25,21 +38,37 @@ defining the area of interest. Optional if \code{place} is provided.}
 e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 (c("Madrid", "Barcelona")).}
 
-\item{year}{numeric. The year of interest: \code{2020} or \code{2021} for retrieving
+\item{zoom}{numeric. Zoom level of map tiles. The default is \code{17}.}
+
+\item{provider}{character. One of "esri" and "eox".}
+
+\item{year}{integer. The desired year for Sentinel-2 cloudless mosaic
+tiles. (This is required when \code{provider = "eox"})}
+
+\item{label_year}{numeric. The year of interest: \code{2020} or \code{2021} for retrieving
 land cover from ESA WorldCover dataset. The default is \code{2021}.}
 
+\item{tiles}{character or vector of character. One of \code{"eox"} and
+\code{c("eox","esri")} (default).}
+
+\item{tile_year}{numeric. The year (available from 2018 to 2024) of map tiles
+provided by EOX.}
+
+\item{s2a}{character. One of "all_bands", "ndvi", and NULL.
+If \code{s2a = "all_bands"}, all bands of Sentinel-2-l2a will downloaded.
+If \code{s2a = "ndvi"}, only band 4 and band 8 will be downloaded to calculate
+NDVI to train randomforest model.
+If \code{s2a = NULL} (default), Sentinel-2-l2a will not be included.}
+
 \item{datetime}{numeric vector of 2. The time of interest such as
-\code{c("2020-08-01", "2020-09-01")} for retrieving Sentinel-2-l2a images.}
+\code{c("2020-08-01", "2020-09-01")} for retrieving Sentinel-2-l2a images.
+(Only required, when \code{bands = "all_bands"} or \code{bands = "ndvi"})}
 
 \item{cloud_cover}{numeric. The percentage of cloud coverage for retrieving
-Sentinel-2-l2a images.}
+Sentinel-2-l2a images. (Only required, when \code{bands = "all_bands"} or \code{bands = "ndvi"})}
 
 \item{vege_perc}{numeric. The percentage of cloud coverage for retrieving
-Sentinel-2-l2a images.}
-
-\item{zoom}{numeric. Zoom level of map tile. The default is \code{17}. To
-exclude RGB-based map tiles in training random forest model,
-use \code{zoom = NULL}.}
+Sentinel-2-l2a images. (Only required, when \code{bands = "all_bands"} or \code{bands = "ndvi"})}
 
 \item{sample_size}{numeric. The total number of locations to be sampled
 over land cover classes. The default is \code{10000}.}
@@ -50,16 +79,23 @@ The default is \code{0.7}.}
 \item{test}{logical. Whether to test the performance of randomforests
 model. The default is \code{TRUE}.}
 
-\item{cores}{numeric. If cores > 1, parallel processing will be used to
+\item{cores}{logical. Whether parallel processing will be used to
 generate land cover.}
 }
 \value{
+A list of two rasters including: greenspace segmentation (where 1 is
+green and 0 is non-green) and original map tiles
+
 If \code{test = FALSE}, a land cover raster.
 If \code{test = TRUE}, a list includes a land cover raster, model performance table,
 and predictor importance plot.
 }
 \description{
-Generate finer-resolution semantic landcover segmentation based on bands
+Generate high-resolution greenspace segmentation using WorldImagery map
+tiles provided by esri and Sentinel-2 cloudless mosaic tiles provided
+by EOX.
+
+Generate semantic land cover segmentation based on map tiles and bands
 of Sentinel-2-l2a images by sampling data over the landcover of ESA WorldCover
 dataset and using random forest. The semantic segmentation includes the same classes
 as ESA WorldCover dataset with additional class of building (See details).
@@ -81,11 +117,24 @@ This function uses ESA WorldCover classification with additional class of buildi
    105 \tab Buildings \tab (0, 0, 0) \tab Buildings \cr
 }
 }
+\note{
+The data derived from Esri WorldImagery may need to include appropriate
+Esri copyright notice.
+
+Using Google Maps data for non-visualization use cases like image analysis,
+machine interpretation, object detection, or geodata extraction is not permitted.
+}
 \examples{
+g <- get_tile_green(
+ # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
+ zoom = 15
+)
+
 sem <- lc_sem_seg(
    # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
-   datetime = c("2024-06-15", "2024-08-15"),
-   year = 2021
+   tiles = c('esri', 'eox'),
+   label_year = 2021,
+   tile_year = 2024
 )
 
 }

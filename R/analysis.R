@@ -74,7 +74,6 @@
 #'   radius = 1500
 #' )
 #'
-#'
 #' @importFrom terra lapp buffer as.points zonal crs res as.polygons
 #' @importFrom terra rasterize names set.names ifel ext centroids project
 #' @importFrom utils unzip
@@ -91,7 +90,6 @@ compute_exposure <- function(r = NULL,
   if (is.null(r)) {
     return(NULL)
   }
-
 
   bbox <- sf::st_as_sfc(sf::st_bbox(as.vector(terra::ext(r))))
   sf::st_crs(bbox) <- 4326
@@ -207,7 +205,11 @@ compute_exposure <- function(r = NULL,
 #' (2) High vegetation (Temperate and Tropical urban forest ): NDVI values generally
 #' between `0.5` and `1.0`.
 #'
-#' @return List of SpatRaster
+#' @return SpatRaster
+#'
+#' @examples
+#' sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
+#' seg <- ndvi_to_sem(sample_data$`25_NDVI`, threshold = c(0.2, 0.6))
 #'
 #' @references
 #' Hashim, H., Abd Latif, Z., & Adnan, N. A. (2019). Urban vegetation classification

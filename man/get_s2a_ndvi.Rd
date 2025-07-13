@@ -27,10 +27,10 @@ e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 \item{datetime}{numeric vector of 2. The time of interest such as
 \code{c("2020-08-01", "2020-09-01")}.}
 
-\item{cloud_cover}{numeric. Threshould for the percentage of cloud coverage.
+\item{cloud_cover}{numeric. Threshold for the percentage of cloud coverage.
 Desfault is 10.}
 
-\item{vege_perc}{numeric. Threshould for the percentage of vegetation coverage.
+\item{vege_perc}{numeric. Threshold for the percentage of vegetation coverage.
 Desfault is 0.}
 
 \item{select}{character. one of "latest", "earliest", "all". The default

@@ -1,6 +1,6 @@
 #' @importFrom sf read_sf st_intersects
 #' @importFrom utils download.file
-#' @importFrom terra rast merge nlyr rev map.pal project
+#' @importFrom terra rast merge nlyr rev map.pal project hist
 #' @importFrom cli cli_alert_info cli_alert_success cli_progress_bar cli_progress_update cli_progress_done
 #' @importFrom magick image_read image_animate
 #' @importFrom dplyr "%>%" mutate pull
@@ -408,6 +408,72 @@ get_the_date <- function(which, dates) {
                 combined_df[1,3])
          )
 }
+
+# This function was done by Xiaojiang Li, Ian Seiferling, Marwa Abdulhai, Senseable City Lab, MIT
+#' @noMd
+graythresh <- function(r, lv = 0.1) {
+  r <- r*255
+  r <- terra::ifel(r < 0, 0, r)
+  hist_info <- terra::hist(terra::values(r), breaks = 0:256, plot = FALSE)
+  p_hist <- hist_info$counts / sum(hist_info$counts)
+  omega <- base::cumsum(p_hist)
+  temp <- 0:255
+  mu <- p_hist * (temp + 1)
+  mu <- base::cumsum(mu)
+  mu_t <- mu[length(mu)]
+  sigma_b_squared <- (mu_t * omega - mu)^2 / (omega * (1 - omega))
+  indInf <- which(is.infinite(sigma_b_squared))
+  CIN <- length(indInf)
+  IsAllInf <- CIN == 256
+  if (!IsAllInf) {
+    maxval <- max(sigma_b_squared, na.rm = TRUE)
+    index <- which(sigma_b_squared == maxval)
+    idx <- mean(index)
+    threshold <- (idx - 1) / 255.0
+  } else {
+    threshold <- lv
+  }
+  if (is.na(threshold)) {
+    threshold <- level
+  }
+  return(threshold)
+}
+
+#' @noMd
+write_eox_wms_xml <- function(bbox, year = 2024, zoom = 15) {
+  if (length(bbox) != 4) stop("bbox must be a vector of 4 numbers: xmin, ymin, xmax, ymax")
+  if (!year %in% 2016:2024) stop("Year must be between 2016 and 2024")
+  if (zoom < 0 || zoom > 22) stop("Zoom should be between 0 and 22")
+
+  layer_name <- paste0("s2cloudless-", year)
+  xmin <- bbox[1]; ymin <- bbox[2]; xmax <- bbox[3]; ymax <- bbox[4]
+  res_deg <- 360 / (256 * 2^zoom)
+  sizex <- ceiling((xmax - xmin) / res_deg)
+
+  xml_lines <- c(
+    '<GDAL_WMS>',
+    '  <Service name="WMS">',
+    '    <Version>1.1.1</Version>',
+    '    <ServerUrl>https://tiles.maps.eox.at/wms?</ServerUrl>',
+    paste0('    <Layers>', layer_name, '</Layers>'),
+    '    <SRS>EPSG:4326</SRS>',
+    '    <Format>image/jpeg</Format>',
+    '  </Service>',
+    '  <DataWindow>',
+    paste0('    <UpperLeftX>', bbox[1], '</UpperLeftX>'),
+    paste0('    <UpperLeftY>', bbox[4], '</UpperLeftY>'),
+    paste0('    <LowerRightX>', bbox[3], '</LowerRightX>'),
+    paste0('    <LowerRightY>', bbox[2], '</LowerRightY>'),
+    paste0('    <SizeX>', sizex, '</SizeX>'),
+    paste0('    <SizeY>', sizex, '</SizeY>'),
+    '  </DataWindow>',
+    '  <Projection>EPSG:4326</Projection>',
+    '  <BandsCount>3</BandsCount>',
+    '</GDAL_WMS>'
+  )
+  return(xml_lines)
+}
+
 
 #' @noMd
 report_time <- function(start_time) {

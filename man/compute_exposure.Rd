@@ -83,7 +83,6 @@ pwgf <- compute_exposure(
   radius = 1500
 )
 
-
 }
 \references{
 Chen, B., Wu, S., Song, Y. et al. Contrasting inequality in human exposure to

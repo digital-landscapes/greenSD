@@ -18,10 +18,15 @@ for classify two types of vegetation areas according to Hashim et al. (2019):
 between \code{0.5} and \code{1.0}.}
 }
 \value{
-List of SpatRaster
+SpatRaster
 }
 \description{
 Convert ndvi raster data into semantic vegetation areas
+}
+\examples{
+sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
+seg <- ndvi_to_sem(sample_data$`25_NDVI`, threshold = c(0.2, 0.6))
+
 }
 \references{
 Hashim, H., Abd Latif, Z., & Adnan, N. A. (2019). Urban vegetation classification

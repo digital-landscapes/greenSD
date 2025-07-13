@@ -64,64 +64,32 @@ dataset_df %>%
 ```
 
 ```{r}
-graythresh <- function(r, lv) {
-  r <- r*255
-  r <- terra::ifel(r < 0, 0, r)
-  hist_info <- terra::hist(terra::values(r), breaks = 0:256, plot = FALSE)
-  p_hist <- hist_info$counts / sum(hist_info$counts)
-  omega <- base::cumsum(p_hist)
-  temp <- 0:255
-  mu <- p_hist * (temp + 1)
-  mu <- base::cumsum(mu)
-  mu_t <- mu[length(mu)]
-  sigma_b_squared <- (mu_t * omega - mu)^2 / (omega * (1 - omega))
-  indInf <- which(is.infinite(sigma_b_squared))
-  CIN <- length(indInf)
-  IsAllInf <- CIN == 256
-  if (!IsAllInf) {
-    maxval <- max(sigma_b_squared, na.rm = TRUE)
-    index <- which(sigma_b_squared == maxval)
-    idx <- mean(index)
-    threshold <- (idx - 1) / 255.0
-  } else {
-    threshold <- lv
-  }
-  if (is.na(threshold)) {
-    threshold <- level
-  }
-  return(threshold) 
-}
 
-
-
-redThreImgU <- t[[1]]/255 < 0.6
-greenThreImgU <- t[[2]]/255 < 0.9
-blueThreImgU <- t[[3]]/255 < 0.6
-shadowRedU <- t[[1]]/255 < 0.3
-shadowGreenU <- t[[2]]/255 < 0.3
-shadowBlueU <- t[[3]]/255 < 0.3
-
-greenImg1 = redThreImgU * blueThreImgU * greenThreImgU
-greenImgShadow1 = shadowRedU * shadowGreenU * shadowBlueU
-
-threImgU <-  redThreImgU * blueThreImgU * greenThreImgU
-imgShadow <- shadowRedU * shadowGreenU * shadowBlueU
-
-g_r_dif <- t[[2]]/255 - t[[1]]/255
-g_b_dif <- t[[2]]/255 - t[[3]]/255
-ExG = g_r_dif + g_b_dif
-diffImg = g_r_dif * g_b_dif
-
-threshold <- 0.5
-greenImg3 = diffImg > 0.0
-greenImg4 = g_r_dif > 0
-greenImg2 = ExG > threshold
-greenImgShadow2 = ExG > 0.05
-greenImg = greenImg1*greenImg2 + greenImgShadow2*greenImgShadow1
-
-
-ExG <- (g_r_dif + g_b_dif)/(t[[1]]/255 + t[[2]]/255 + t[[3]]/255)
-greenImg <- (ExG > 0.05)*threImgU + (ExG > 0.05)*imgShadow
+# redThreImgU <- t[[1]]/255 < 0.6
+# greenThreImgU <- t[[2]]/255 < 0.9
+# blueThreImgU <- t[[3]]/255 < 0.6
+# shadowRedU <- t[[1]]/255 < 0.3
+# shadowGreenU <- t[[2]]/255 < 0.3
+# shadowBlueU <- t[[3]]/255 < 0.3
+# 
+# greenImg1 = redThreImgU * blueThreImgU * greenThreImgU
+# greenImgShadow1 = shadowRedU * shadowGreenU * shadowBlueU
+# 
+# threImgU <-  redThreImgU * blueThreImgU * greenThreImgU
+# imgShadow <- shadowRedU * shadowGreenU * shadowBlueU
+# 
+# g_r_dif <- t[[2]]/255 - t[[1]]/255
+# g_b_dif <- t[[2]]/255 - t[[3]]/255
+# ExG = g_r_dif + g_b_dif
+# diffImg = g_r_dif * g_b_dif
+# 
+# threshold <- 0.5
+# greenImg3 = diffImg > 0.0
+# greenImg4 = g_r_dif > 0
+# threshold <- graythresh(ExG)
+# greenImg2 = ExG > 0.1
+# greenImgShadow2 = ExG > 0.05
+# greenImg = greenImg1*greenImg2 + greenImgShadow2*greenImgShadow1
 ```
 
 ```{r}

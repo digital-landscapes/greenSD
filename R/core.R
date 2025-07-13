@@ -198,6 +198,7 @@ get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
 #' Herold, M., Tsendbazar, N.-E., Xu, P., Ramoino, F., & Arino, O. (2022).
 #' ESA WorldCover 10 m 2021 v200 (Version v200).
 #' Zenodo. https://doi.org/10.5281/zenodo.7254221
+#'
 #' @importFrom aws.s3 get_bucket save_object
 #' @export
 get_esa_wc <- function(bbox = NULL, place = NULL,
@@ -495,22 +496,35 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
 }
 
 
-#' @title Sample Greenspace Values from Greenspace Seasonality Data Cube or
-#' ESA WorldCover 10m Annual Composites Dataset
+#' @title Sample greenspace-realted data from Greenspace Seasonality Data Cube,
+#' ESA WorldCover 10m Annual Composites Dataset, or Sentinel-2-l2a images.
 #' @name sample_values
 #'
 #' @description Samples values by locatoins from the Greenspace Seasonality Data Cube
-#' developed by Wu et al. (2024) or ESA WorldCover 10m Annual Composites Dataset
-#' by Zanaga et al. (2021).
+#' developed by Wu et al. (2024), ESA WorldCover 10m Annual Composites Dataset
+#' by Zanaga et al. (2021), or Sentinel-2-l2a images.
 #'
 #' @param samples A list, matrix, `data.frame`, or `sf` object of point locations.
 #' Can be a list of length-2 numeric vectors (`list(c(lon, lat))`),
 #' a 2-column matrix or data.frame, or an `sf` object with POINT geometry in any CRS.
 #' @param time numeric or vector. The time of interest. See Detail.
 #' @param source character. The data source for extracting greenspace values:
-#' `gsdc` for Greenspace Seasonality Data Cube, `esa_ndvi`or `esa_landcover` for
-#' ESA WorldCover 10m Annual Dataset, and `s2a_ndvi` or `s2a_bands` for
-#' Sentinel-2-l2a image data. The default is `gsdc`.
+#' `gsdc` for Greenspace Seasonality Data Cube (also see [get_gsdc()]]),
+#' `esa_ndvi`or `esa_landcover` for ESA WorldCover 10m Annual Dataset
+#' (also see [get_esa_wc()]]), and `s2a_ndvi` or `s2a_bands` for
+#' Sentinel-2-l2a image data (also see [get_s2a_ndvi()]]). The default is `gsdc`.
+#' @param output_bands vector. A list of band names (`c('B04', 'B08')`).
+#' The default is `NULL`. (Only required, when `source = "s2a_bands"`)
+#' All available bands can be found [here](https://docs.sentinel-hub.com/api/latest/data/sentinel-2-l2a/#available-bands-and-data)
+#' @param cloud_cover numeric. The percentage of cloud coverage for retrieving
+#' Sentinel-2-l2a images. (Only required, when `source = "s2a_ndvi"` or `source = "s2a_bands"`)
+#' @param vege_perc numeric. The percentage of cloud coverage for retrieving
+#' Sentinel-2-l2a images. (Only required, when `source = "s2a_ndvi"` or `source = "s2a_bands"`)
+#' @param select character. one of "latest", "earliest", "all". The default
+#' is "latest".
+#' @param method character. A method for mosaicing layers: one of "mean",
+#' "median", "min", "max", "modal", "sum", "first", "last". The default
+#' is "first".
 #'
 #' @return A `data.frame` containing greenspace values extracted at each point
 #' across all bands. Each row corresponds to a sample location;
@@ -539,10 +553,6 @@ get_s2a_ndvi <- function(bbox = NULL, place = NULL, datetime = c(),
 #' gs_samples <- sample_values(samples,
 #'                             # time = 2022
 #'                            )
-#'
-#' @details
-#' The Greenspace Data Cube is organized into 36 bands per year,
-#' each representing a 10-day interval.
 #'
 #' @references
 #' Wu, S., Song, Y., An, J. et al. High-resolution greenspace dynamic
@@ -619,11 +629,7 @@ sample_values <- function(samples = NULL, time = NULL,
   }
 
   # Extract values at point locations
-  if (source == 's2a_bands') {
-
-  } else {
-    values <- terra::extract(raster_data, terra::vect(sf_points))
-  }
+  values <- terra::extract(raster_data, terra::vect(sf_points))
 
   # Combine with coordinates (omit ID column)
   result <- sf::st_drop_geometry(sf_points)
@@ -635,7 +641,9 @@ sample_values <- function(samples = NULL, time = NULL,
 #' @title Classify greenspace based on map tile images
 #' @name lc_sem_seg
 #' @description
-#' Generate high-resolution greenspace segmentation using map tiles
+#' Generate high-resolution greenspace segmentation using WorldImagery map
+#' tiles provided by esri and Sentinel-2 cloudless mosaic tiles provided
+#' by EOX.
 #' @param bbox `sf`, `sfc`, or a numeric vector (xmin, ymin, xmax, ymax)
 #' defining the area of interest. Optional if `place` is provided.
 #' @param place character or vector. (optional) A single line address,
@@ -644,8 +652,35 @@ sample_values <- function(samples = NULL, time = NULL,
 #' @param zoom numeric. Zoom level of map tile. The default is `17`. To
 #' exclude RGB-based map tiles in training random forest model,
 #' use `zoom = NULL`.
+#' @param provider character. One of "esri" and "eox".
+#' @param year integer. The desired year for Sentinel-2 cloudless mosaic
+#' tiles. (This is required when `provider = "eox"`)
+#'
+#' @return
+#' A list of two rasters including: greenspace segmentation (where 1 is
+#' green and 0 is non-green) and original map tiles
+#'
+#' @note
+#' The data derived from Esri WorldImagery may need to include appropriate
+#' Esri copyright notice.
+#'
+#' Using Google Maps data for non-visualization use cases like image analysis,
+#' machine interpretation, object detection, or geodata extraction is not permitted.
+#'
+#' @examples
+#' g <- get_tile_green(
+#'  # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
+#'  zoom = 15
+#' )
+#'
+#' @importFrom maptiles create_provider get_tiles
+#' @importFrom terra as.array
 #' @export
-tile_to_green <- function(bbox, place, zoom, source = 'esri') {
+get_tile_green <- function(bbox = NULL,
+                           place = NULL,
+                           zoom = 17,
+                           provider = 'esri',
+                           year = NULL) {
   start_time <- Sys.time()
 
   if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
@@ -670,45 +705,75 @@ tile_to_green <- function(bbox, place, zoom, source = 'esri') {
     return(NULL)
   }
   bbox <- sf::st_transform(bbox, 4326)
-  if (source == "gmt") {
-    p <- maptiles::create_provider(name = "gmt",
-                                   url = "http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}")
+  if (provider == "eox" & is.null(year)) stop("`year` is missing.")
+  cli::cli_alert_info(paste0('Downloading ',
+                             if (provider == "eox") "Sentinel-2 cloudless mosaic " else "Esri.WorldImagery "
+                             ,'map tiles ...'))
+  if (provider == "eox") {
+    xml_text <- write_eox_wms_xml(bbox = sf::st_bbox(bbox), year = year, zoom = zoom)
+    temp_xml <- tempfile(fileext = ".xml")
+    on.exit(unlink(temp_xml))
+    writeLines(xml_text, temp_xml)
+    m <- terra::rast(temp_xml)
+    mat <- terra::as.array(m)
+    m <- terra::rast(mat, extent = terra::ext(m), crs = terra::crs(m))
+  } else {
+    m <- maptiles::get_tiles(bbox,
+                             provider = if (provider == "eox") p else "Esri.WorldImagery",
+                             zoom = zoom,
+                             crop = TRUE)
   }
-  t <- maptiles::get_tiles(bbox,
-                             provider = if (source == "gmt") p else "Esri.WorldImagery",
-                             zoom = zoom)
-  names(t) <- c('r', 'g', 'b')
 
-  redThreImgU <- t[[1]]/255 < 0.6
-  greenThreImgU <- t[[2]]/255 < 0.9
-  blueThreImgU <- t[[3]]/255 < 0.6
-  shadowRedU <- t[[1]]/255 < 0.3
-  shadowGreenU <- t[[2]]/255 < 0.3
-  shadowBlueU <- t[[3]]/255 < 0.3
+  names(m) <- c('r', 'g', 'b')
+  t <- m/255
 
-  greenImg1 = redThreImgU * blueThreImgU * greenThreImgU
-  greenImgShadow1 = shadowRedU * shadowGreenU * shadowBlueU
+  # The code below was done by Xiaojiang Li,
+  # Ian Seiferling, Marwa Abdulhai, Senseable City Lab, MIT
+  redThreImgU <- t[[1]] < 0.6
+  greenThreImgU <- t[[2]] < 0.9
+  blueThreImgU <- t[[3]] < 0.6
+  shadowRedU <- t[[1]] < 0.3
+  shadowGreenU <- t[[2]] < 0.3
+  shadowBlueU <- t[[3]] < 0.3
+
+  greenImg1 <- redThreImgU * blueThreImgU * greenThreImgU
+  greenImgShadow1 <- shadowRedU * shadowGreenU * shadowBlueU
 
   threImgU <-  redThreImgU * blueThreImgU * greenThreImgU
   imgShadow <- shadowRedU * shadowGreenU * shadowBlueU
 
-  g_r_dif <- t[[2]]/255 - t[[1]]/255
-  g_b_dif <- t[[2]]/255 - t[[3]]/255
-  ExG = g_r_dif + g_b_dif
-  diffImg = g_r_dif * g_b_dif
+  g_r_dif <- t[[2]] - t[[1]]
+  g_b_dif <- t[[2]] - t[[3]]
+  ExG <- g_r_dif + g_b_dif
+  diffImg <- g_r_dif * g_b_dif
 
   threshold <- 0.5
-  greenImg3 = diffImg > 0.0
-  greenImg4 = g_r_dif > 0
-  greenImg2 = ExG > threshold
+  greenImg3 <- diffImg > 0.0
+  greenImg4 <- g_r_dif > 0
+
+  threshold <- graythresh(ExG, 0.1)
+  if (threshold > 0.1) {
+    threshold <- 0.1
+  } else if (threshold < 0.05) {
+    threshold <- 0.05
+  }
+
+  greenImg2 <- ExG > threshold
   greenImgShadow2 = ExG > 0.05
-  greenImg = greenImg1*greenImg2 + greenImgShadow2*greenImgShadow1
+  greenImg <- greenImg1*greenImg2 + greenImgShadow2*greenImgShadow1
+  greenImg <- terra::ifel(greenImg != 0, 1, 0)
+  names(greenImg) <- "green"
+  map_mask <- terra::ifel(greenImg == 0, NA, m)
+  output <- list(green = greenImg,
+                 map = m)
+  report_time(start_time)
+  return(output)
 }
 
 #' @title Classify land cover based on multi-source imagery datasets
 #' @name lc_sem_seg
 #' @description
-#' Generate finer-resolution semantic landcover segmentation based on bands
+#' Generate semantic land cover segmentation based on map tiles and bands
 #' of Sentinel-2-l2a images by sampling data over the landcover of ESA WorldCover
 #' dataset and using random forest. The semantic segmentation includes the same classes
 #' as ESA WorldCover dataset with additional class of building (See details).
@@ -717,24 +782,32 @@ tile_to_green <- function(bbox, place, zoom, source = 'esri') {
 #' @param place character or vector. (optional) A single line address,
 #' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 #' (c("Madrid", "Barcelona")).
-#' @param year numeric. The year of interest: `2020` or `2021` for retrieving
+#' @param label_year numeric. The year of interest: `2020` or `2021` for retrieving
 #' land cover from ESA WorldCover dataset. The default is `2021`.
+#' @param tiles character or vector of character. One of `"eox"` and
+#' `c("eox","esri")` (default).
+#' @param tile_year numeric. The year (available from 2018 to 2024) of map tiles
+#' provided by EOX.
+#' @param zoom numeric. Zoom level of map tiles. The default is `17`.
+#' @param s2a character. One of "all_bands", "ndvi", and NULL.
+#' If `s2a = "all_bands"`, all bands of Sentinel-2-l2a will downloaded.
+#' If `s2a = "ndvi"`, only band 4 and band 8 will be downloaded to calculate
+#' NDVI to train randomforest model.
+#' If `s2a = NULL` (default), Sentinel-2-l2a will not be included.
 #' @param datetime numeric vector of 2. The time of interest such as
 #' `c("2020-08-01", "2020-09-01")` for retrieving Sentinel-2-l2a images.
+#' (Only required, when `bands = "all_bands"` or `bands = "ndvi"`)
 #' @param cloud_cover numeric. The percentage of cloud coverage for retrieving
-#' Sentinel-2-l2a images.
+#' Sentinel-2-l2a images. (Only required, when `bands = "all_bands"` or `bands = "ndvi"`)
 #' @param vege_perc numeric. The percentage of cloud coverage for retrieving
-#' Sentinel-2-l2a images.
-#' @param zoom numeric. Zoom level of map tile. The default is `17`. To
-#' exclude RGB-based map tiles in training random forest model,
-#' use `zoom = NULL`.
+#' Sentinel-2-l2a images. (Only required, when `bands = "all_bands"` or `bands = "ndvi"`)
 #' @param sample_size numeric. The total number of locations to be sampled
 #' over land cover classes. The default is `10000`.
 #' @param trian_split numeric. The percentage of samples used for training model.
 #' The default is `0.7`.
 #' @param test logical. Whether to test the performance of randomforests
 #' model. The default is `TRUE`.
-#' @param cores numeric. If cores > 1, parallel processing will be used to
+#' @param cores logical. Whether parallel processing will be used to
 #' generate land cover.
 #'
 #' @return
@@ -763,8 +836,9 @@ tile_to_green <- function(bbox, place, zoom, source = 'esri') {
 #' @examples
 #' sem <- lc_sem_seg(
 #'    # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
-#'    datetime = c("2024-06-15", "2024-08-15"),
-#'    year = 2021
+#'    tiles = c('esri', 'eox'),
+#'    label_year = 2021,
+#'    tile_year = 2024
 #' )
 #'
 #' @importFrom terra spatSample rasterize extract compareGeom subst as.int levels predict
@@ -777,11 +851,20 @@ tile_to_green <- function(bbox, place, zoom, source = 'esri') {
 #' @importFrom stats predict
 #'
 #' @export
-lc_sem_seg <- function(bbox = NULL, place = NULL,
-                       year = NULL, datetime = c(),
-                       cloud_cover = 10, vege_perc = 0, zoom = 17,
-                       sample_size = 10000, trian_split = 0.7,
-                       test = TRUE) {
+lc_sem_seg <- function(bbox = NULL,
+                       place = NULL,
+                       label_year = NULL,
+                       tiles = c('esri', 'eox'),
+                       tile_year = NULL,
+                       zoom = 17,
+                       s2a = NULL,
+                       datetime = c(),
+                       cloud_cover = 10,
+                       vege_perc = 0,
+                       sample_size = 10000,
+                       trian_split = 0.7,
+                       test = TRUE,
+                       cores = TRUE) {
   start_time <- Sys.time()
 
   if (!inherits(bbox, 'NULL') || !inherits(place, 'NULL')) {
@@ -808,23 +891,61 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
   bbox <- sf::st_transform(bbox, 4326)
 
   ## donwload datasets
-  if (!is.null(zoom)) {
-    sat <- maptiles::get_tiles(bbox, provider = "Esri.WorldImagery", zoom = zoom)
-    names(sat) <- c('r', 'g', 'b')
-  }
-  lc <- get_esa_wc(bbox = bbox, year = year, datatype = "landcover")
+  lc <- get_esa_wc(bbox = bbox, year = label_year, datatype = "landcover")
+
   building <- overturemapsr::record_batch_reader("building", bbox = as.numeric(sf::st_bbox(bbox)))
   building <- terra::rasterize(terra::vect(building$geometry), lc)
   building_ <- terra::ifel(is.na(building), 0, 100)
+
   lc_ <- building_ + lc
   lc_ <- terra::ifel(lc_ > 100, 105, lc_)
-  band_names <- c('B01', 'B02', 'B03', 'B04', 'B05', 'B06',
-                  'B07', 'B08', 'B09', 'B11', 'B12')
-  bands <- get_s2a_ndvi(bbox = bbox,
-                        datetime = datetime,
-                        output_bands = band_names)
-  ndvi <- compute_ndvi(bands$B04, bands$B08)
-  names(ndvi) <- 'ndvi'
+
+  sat_eox <- NULL
+  sat_esri <- NULL
+  green_eox <- NULL
+  green_esri <- NULL
+  if (length(tiles) == 1 & tiles[1] == "eox") {
+    tile_set <- get_tile_green(bbox, provider = "eox",
+                               zoom = zoom, year = tile_year)
+    sat_eox <- tile_set$map
+    names(sat_eox) <- c('eox_r', 'eox_g', 'eox_b')
+    green_eox <- tile_set$green
+    names(green_eox) <- c("green_eox")
+  } else if (length(tiles) == 2 & "eox" %in% tiles & "esri" %in% tiles) {
+    tile_eox <- get_tile_green(bbox, provider = "eox",
+                               zoom = zoom, year = tile_year)
+    tile_esri <- get_tile_green(bbox, provider = "esri",
+                                zoom = zoom)
+    sat_eox <- tile_eox$map
+    sat_esri <- tile_esri$map
+    names(sat_eox) <- c('eox_r', 'eox_g', 'eox_b')
+    names(sat_esri) <- c('esri_r', 'esri_g', 'esri_b')
+    green_eox <- tile_eox$green
+    tile_esri <- tile_esri$green
+    names(green_eox) <- c("green_eox")
+    names(green_esri) <- c("green_esri")
+  }
+
+  bands <- NULL
+  ndvi <- NULL
+  if (is.null(s2a)) {
+    if (s2a == "ndvi") {
+      ndvi <- get_s2a_ndvi(bbox = bbox,
+                           datetime = datetime,
+                           cloud_cover = cloud_cover,
+                           vege_perc = vege_perc)
+    } else if (s2a == "all_bands") {
+      band_names <- c('B01', 'B02', 'B03', 'B04', 'B05', 'B06',
+                      'B07', 'B08', 'B09', 'B11', 'B12')
+      bands <- get_s2a_ndvi(bbox = bbox,
+                            datetime = datetime,
+                            cloud_cover = cloud_cover,
+                            vege_perc = vege_perc,
+                            output_bands = band_names)
+      ndvi <- compute_ndvi(bands$B04, bands$B08)
+    }
+    names(ndvi) <- 'ndvi'
+  }
 
   # sample ground truth and predictors
   samples_vect <- suppressWarnings(
@@ -834,38 +955,45 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
                       as.points = TRUE)
   )
   label_set <- terra::extract(lc_, samples_vect, method = 'simple')
-  if (!is.null(zoom)) {rgb_set <- terra::extract(sat, samples_vect, method = 'simple')}
-  bands_set <- terra::extract(terra::sprc(bands), samples_vect, method = 'simple')
-  bands_set <- bands_set %>% purrr::reduce(dplyr::inner_join, by = "ID")
-  colnames(bands_set) <- c("ID", band_names)
-  ndvi_set <- terra::extract(ndvi, samples_vect, method = 'simple')
 
+  if (!is.null(sat_eox)) eox_rgb_set <- terra::extract(sat_eox, samples_vect, method = 'simple')
+  if (!is.null(green_eox)) eox_green_set <- terra::extract(green_eox, samples_vect, method = 'simple')
+  if (!is.null(sat_esri)) esri_rgb_set <- terra::extract(esri_eox, samples_vect, method = 'simple')
+  if (!is.null(green_esri)) esri_green_set <- terra::extract(green_esri, samples_vect, method = 'simple')
+
+  if (!is.null(bands)) {
+    bands_set <- terra::extract(terra::sprc(bands), samples_vect, method = 'simple')
+    bands_set <- bands_set %>% purrr::reduce(dplyr::inner_join, by = "ID")
+    colnames(bands_set) <- c("ID", band_names)
+  }
+  if (!is.null(ndvi)) ndvi_set <- terra::extract(ndvi, samples_vect, method = 'simple')
 
   # prepare training and testing set
-  dataset_df <- if (!is.null(zoom)) list(label_set, rgb_set, bands_set, ndvi_set) else list(label_set, bands_set, ndvi_set)
+  dataset_df <- list(label_set)
+  if (!is.null(sat_eox)) dataset_df[[length(dataset_df)+1]] <- eox_rgb_set
+  if (!is.null(green_eox)) dataset_df[[length(dataset_df)+1]] <- eox_green_set
+  if (!is.null(sat_esri)) dataset_df[[length(dataset_df)+1]] <- esri_rgb_set
+  if (!is.null(green_esri)) dataset_df[[length(dataset_df)+1]] <- esri_green_set
+  if (!is.null(bands)) dataset_df[[length(dataset_df)+1]] <- bands_set
+  if (!is.null(ndvi)) dataset_df[[length(dataset_df)+1]] <- ndvi_set
+
   dataset_df <- dataset_df %>% purrr::reduce(dplyr::inner_join, by = "ID")
   dataset_df <- dataset_df[,-c(1)]
   dataset_df$layer <- as.factor(dataset_df$layer)
   dataset_df <- na.omit(dataset_df)
 
   train_ind <- caret::createDataPartition(dataset_df$layer,
-                                          p=trian_split,
-                                          list=FALSE)
+                                          p = trian_split,
+                                          list = FALSE)
   data_train <- dataset_df[train_ind,]
   if (test) {data_test <- dataset_df[-train_ind,]}
 
   # random forest
   cli::cli_alert_info('Training model ...')
   cli::cli_alert_info('This process may take 15 minutes or longer. You can grab a cup of tea or coffee now.')
-  if (!is.null(zoom)) {
-    rf <- caret::train(layer~r+g+b+B01+B02+B03+B04+B05+B06+B07+B08+B09+B11+B12+ndvi,
-                       method='rf',
-                       data=data_train)
-  } else {
-    rf <- caret::train(layer~B01+B02+B03+B04+B05+B06+B07+B08+B09+B11+B12+ndvi,
-                       method='rf',
-                       data=data_train)
-  }
+  rf <- caret::train(layer ~ .,
+                     method = 'rf',
+                     data = data_train)
 
   # test and model performance (optional)
   if (test) {
@@ -878,11 +1006,18 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
   }
 
   # predict
+  stack <- list()
+  if (!is.null(sat_eox)) stack[[length(stack)+1]] <- sat_eox
+  if (!is.null(green_eox)) stack[[length(stack)+1]] <- green_eox
+  if (!is.null(sat_esri)) stack[[length(stack)+1]] <- sat_esri
+  if (!is.null(green_esri)) stack[[length(stack)+1]] <- green_esri
+  if (!is.null(bands)) stack[[length(stack)+1]] <- bands
+  if (!is.null(ndvi)) stack[[length(stack)+1]] <- ndvi
+
   cli::cli_alert_info('Predicting ...')
   cli::cli_alert_info('You can take a break now and come back later ...')
-  stack <- if (!is.null(zoom)) c(list(sat), bands, list(ndvi)) else c(bands, list(ndvi))
-  resolutions <- sapply(stack,
-                        function(x) prod(terra::res(x)))
+
+  resolutions <- sapply(stack, function(x) prod(terra::res(x)))
   best_res_index <- which.min(resolutions)
   ref_raster <- stack[[best_res_index]]
 
@@ -897,7 +1032,7 @@ lc_sem_seg <- function(bbox = NULL, place = NULL,
   names(predictor_stack) <- colnames(data_train)[2:length(colnames(data_train))]
   classify <- terra::predict(object = predictor_stack,
                              model = rf, na.rm = TRUE,
-                             cores = parallel::detectCores() -1)
+                             cores = if (!cores) 1 else parallel::detectCores() -1)
   landcover_colors <- c(
     "10" = grDevices::rgb(0, 100, 0, maxColorValue = 255),       # Tree cover
     "20" = grDevices::rgb(255, 187, 34, maxColorValue = 255),    # Shrubland
