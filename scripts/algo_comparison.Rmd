@@ -1,0 +1,42 @@
+---
+title: "algo_comparison"
+output: html_document
+---
+
+```{r}
+gsdc <- greenSD::get_gsdc_data(bbox = c(-83.272828,42.343950,-83.218926,42.379719), year = 2021, mask = TRUE)
+esa <- greenSD::get_ndvi_data(bbox = c(-83.272828,42.343950,-83.218926,42.379719), year = 2021, mask = TRUE)
+```
+
+```{r}
+greenspace_fraction_esa <- terra::lapp(esa, fun = function(p90, p50, p10) {
+  gs <- 0.8 * p90 + 0.05 * p50 + 0.05 * p10
+  gs[gs < 0] <- 0
+  return(pmin(pmax(gs, 0), 1))
+})
+
+greenspace_fraction_esa <- terra::resample(greenspace_fraction_esa, gsdc, method = 'near')
+delta <- gsdc - greenspace_fraction_esa
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+vals <- data.frame(value = terra::values(delta))
+colnames(vals) <- paste0('error_', 1:ncol(vals))
+ggplot(vals, aes(x = error_16)) +
+  geom_histogram(binwidth = 0.05, fill = "forestgreen", color = "white") +
+  labs(title = "Error Distribution", x = "error", y = "Count")
+```
+
+```{r}
+avg_error <- sum(delta)/36
+vals <- data.frame(value = terra::values(avg_error))
+ggplot(vals, aes(x = sum)) +
+  geom_histogram(binwidth = 0.05, fill = "forestgreen", color = "white") +
+  labs(title = "Error Distribution", x = "error", y = "Count")
+```
+
+

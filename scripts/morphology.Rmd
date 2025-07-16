@@ -1,0 +1,15 @@
+---
+title: "morphology"
+output: html_document
+---
+
+```{r}
+green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                 provider = "esri",
+                                 zoom = 16)
+p <- terra::ifel(green$green == 0, NA, 1)
+```
+
+```{r}
+m <- compute_morphology(p, grid_size = 800)
+```

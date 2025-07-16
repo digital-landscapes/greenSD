@@ -1,0 +1,158 @@
+---
+title: "RF"
+output: html_document
+---
+
+```{r}
+bbox <- c(-83.087174,42.333373,-83.042542,42.358748)
+sample_size <- 5000
+split <- 0.7
+```
+
+```{r}
+bbox <- sf::st_as_sfc(
+          sf::st_bbox(
+            c(xmin = bbox[1],
+              ymin = bbox[2],
+              xmax = bbox[3],
+              ymax = bbox[4]),
+            crs = 4326
+            )
+          )
+bbox <- sf::st_transform(bbox, 4326)
+```
+
+```{r}
+t <- maptiles::get_tiles(bbox, provider = "Esri.WorldImagery", zoom = 17)
+names(t) <- c('r', 'g', 'b')
+#gs <- get_gsdc(bbox = bbox, year = 2021, time = "07-01", mask = TRUE)
+lc <- get_esa_wc(bbox = bbox, year = 2021, datatype = "landcover")
+building <- overturemapsr::record_batch_reader("building", bbox = as.numeric(sf::st_bbox(bbox)))
+building <- terra::rasterize(terra::vect(building$geometry), lc)
+band_names <- c('B01', 'B02', 'B03', 'B04', 'B05', 'B06', 
+                 'B07', 'B08', 'B09', 'B11', 'B12')
+bands <- get_s2a_ndvi(bbox = bbox, 
+                      datetime = c("2024-06-15", "2024-08-15"),
+                      output_bands = band_names)
+ndvi <- compute_ndvi(bands$B04, bands$B08)
+names(ndvi) <- 'ndvi'
+building_ <- terra::ifel(is.na(building), 0, 100)
+lc_ <- building_ + lc
+lc_ <- terra::ifel(lc_ > 100, 105, lc_)
+
+samples_vect <- terra::spatSample(lc_, 
+                                  size = as.integer(sample_size/length(terra::unique(lc_)[[1]])), 
+                                  method = "stratified", 
+                                  as.points = TRUE)
+label_set <- terra::extract(lc_, samples_vect, method = 'simple')
+rgb_set <- terra::extract(t, samples_vect, method = 'simple')
+bands_set <- terra::extract(terra::sprc(bands), samples_vect, method = 'simple')
+bands_set <- bands_set %>% purrr::reduce(dplyr::inner_join, by = "ID") 
+colnames(bands_set) <- c("ID", band_names)
+ndvi_set <- terra::extract(ndvi, samples_vect, method = 'simple')
+
+
+dataset_df <- list(label_set, rgb_set, bands_set, ndvi_set)
+dataset_df <- dataset_df %>% purrr::reduce(dplyr::inner_join, by = "ID") 
+dataset_df <- dataset_df[,-c(1)]
+dataset_df$layer <- as.factor(dataset_df$layer)
+dataset_df <- na.omit(dataset_df)
+
+dataset_df %>% 
+  dplyr::group_by(layer) %>%
+  dplyr::summarise(number = length(layer))
+```
+
+```{r}
+
+# redThreImgU <- t[[1]]/255 < 0.6
+# greenThreImgU <- t[[2]]/255 < 0.9
+# blueThreImgU <- t[[3]]/255 < 0.6
+# shadowRedU <- t[[1]]/255 < 0.3
+# shadowGreenU <- t[[2]]/255 < 0.3
+# shadowBlueU <- t[[3]]/255 < 0.3
+# 
+# greenImg1 = redThreImgU * blueThreImgU * greenThreImgU
+# greenImgShadow1 = shadowRedU * shadowGreenU * shadowBlueU
+# 
+# threImgU <-  redThreImgU * blueThreImgU * greenThreImgU
+# imgShadow <- shadowRedU * shadowGreenU * shadowBlueU
+# 
+# g_r_dif <- t[[2]]/255 - t[[1]]/255
+# g_b_dif <- t[[2]]/255 - t[[3]]/255
+# ExG = g_r_dif + g_b_dif
+# diffImg = g_r_dif * g_b_dif
+# 
+# threshold <- 0.5
+# greenImg3 = diffImg > 0.0
+# greenImg4 = g_r_dif > 0
+# threshold <- graythresh(ExG)
+# greenImg2 = ExG > 0.1
+# greenImgShadow2 = ExG > 0.05
+# greenImg = greenImg1*greenImg2 + greenImgShadow2*greenImgShadow1
+```
+
+```{r}
+train_ind <- caret::createDataPartition(dataset_df$layer, p=split, list=FALSE)
+data_train <- dataset_df[train_ind,]
+data_test <- dataset_df[-train_ind,]
+rf <- caret::train(layer~r+g+b+B01+B02+B03+B04+B05+B06+B07+B08+B09+B11+B12+ndvi, 
+                   method='rf', 
+                   data=data_train)
+x_test <- data_test[,2:ncol(data_test)]
+y_test <- data_test[,1]
+predictions <- predict(rf,x_test)
+
+confusionMatrix(predictions, y_test)
+importance <- varImp(rf)
+plot(importance)
+```
+
+```{r}
+stack <- c(list(t), bands, list(ndvi))
+resolutions <- sapply(stack, 
+                      function(x) prod(terra::res(x)))
+best_res_index <- which.min(resolutions)
+ref_raster <- stack[[best_res_index]]
+
+rasters_resampled <- lapply(stack, function(x) {
+  if (!terra::compareGeom(x, ref_raster, stopOnError = FALSE)) {
+    terra::resample(x, ref_raster, method = "bilinear")
+  } else {
+    x
+  }
+})
+
+predictor_stack <- terra::rast(rasters_resampled)
+names(predictor_stack) <- colnames(data_train)[2:length(colnames(data_train))]
+classify <- terra::predict(object = predictor_stack, 
+                           model = rf, na.rm = TRUE, 
+                           cores = parallel::detectCores() -1)
+
+landcover_colors <- c(
+  "10" = rgb(0, 100, 0, maxColorValue = 255),       # Tree cover
+  "20" = rgb(255, 187, 34, maxColorValue = 255),    # Shrubland
+  "30" = rgb(255, 255, 76, maxColorValue = 255),    # Grassland
+  "40" = rgb(240, 150, 255, maxColorValue = 255),   # Cropland
+  "50" = rgb(250, 0, 0, maxColorValue = 255),       # Built-up
+  "60" = rgb(180, 180, 180, maxColorValue = 255),   # Bare/sparse vegetation
+  "70" = rgb(240, 240, 240, maxColorValue = 255),   # Snow and Ice
+  "80" = rgb(0, 100, 200, maxColorValue = 255),     # Permanent water bodies
+  "90" = rgb(0, 150, 160, maxColorValue = 255),     # Herbaceous wetland 
+  "95" = rgb(0, 207, 117, maxColorValue = 255),     # Mangroves
+  "100" = rgb(250, 230, 160, maxColorValue = 255),  # Moss and lichen 
+  "105" = rgb(0, 0, 0, maxColorValue = 255)         # Buildings
+)
+
+lvls <- terra::levels(classify)[[1]]
+classified_numeric <- terra::subst(terra::as.int(classify), 
+                                   from = lvls$value, 
+                                   to = as.integer(lvls$class))
+levels_df <- data.frame(
+  value = as.numeric(names(landcover_colors)),
+  col = landcover_colors 
+)
+terra::coltab(classified_numeric) <- levels_df
+# Plot with legend
+terra::plot(classified_numeric)
+```

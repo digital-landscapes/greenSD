@@ -2,21 +2,49 @@
 % Please edit documentation in R/core.R
 \name{sample_values}
 \alias{sample_values}
-\title{Sample Greenspace Values from Greenspace Seasonality Data Cube or
-ESA WorldCover 10m Annual Composites Dataset}
+\title{Sample greenspace-realted data from Greenspace Seasonality Data Cube,
+ESA WorldCover 10m Annual Composites Dataset, or Sentinel-2-l2a images.}
 \usage{
-sample_values(samples = NULL, year = NULL, source = "gsdc")
+sample_values(
+  samples = NULL,
+  time = NULL,
+  source = "gsdc",
+  output_bands = NULL,
+  cloud_cover = 10,
+  vege_perc = 0,
+  select = "latest",
+  method = "first"
+)
 }
 \arguments{
 \item{samples}{A list, matrix, \code{data.frame}, or \code{sf} object of point locations.
 Can be a list of length-2 numeric vectors (\code{list(c(lon, lat))}),
 a 2-column matrix or data.frame, or an \code{sf} object with POINT geometry in any CRS.}
 
-\item{year}{numeric. The year of interest. See Detail.}
+\item{time}{numeric or vector. The time of interest. See Detail.}
 
 \item{source}{character. The data source for extracting greenspace values:
-\code{gsdc} for Greenspace Seasonality Data Cube and \code{esa} for ESA WorldCover 10m
-Annual Composites Dataset. The default is \code{gsdc}.}
+\code{gsdc} for Greenspace Seasonality Data Cube (also see \code{\link[=get_gsdc]{get_gsdc()}}]),
+\code{esa_ndvi}or \code{esa_landcover} for ESA WorldCover 10m Annual Dataset
+(also see \code{\link[=get_esa_wc]{get_esa_wc()}}]), and \code{s2a_ndvi} or \code{s2a_bands} for
+Sentinel-2-l2a image data (also see \code{\link[=get_s2a_ndvi]{get_s2a_ndvi()}}]). The default is \code{gsdc}.}
+
+\item{output_bands}{vector. A list of band names (\code{c('B04', 'B08')}).
+The default is \code{NULL}. (Only required, when \code{source = "s2a_bands"})
+All available bands can be found \href{https://docs.sentinel-hub.com/api/latest/data/sentinel-2-l2a/#available-bands-and-data}{here}}
+
+\item{cloud_cover}{numeric. The percentage of cloud coverage for retrieving
+Sentinel-2-l2a images. (Only required, when \code{source = "s2a_ndvi"} or \code{source = "s2a_bands"})}
+
+\item{vege_perc}{numeric. The percentage of cloud coverage for retrieving
+Sentinel-2-l2a images. (Only required, when \code{source = "s2a_ndvi"} or \code{source = "s2a_bands"})}
+
+\item{select}{character. one of "latest", "earliest", "all". The default
+is "latest".}
+
+\item{method}{character. A method for mosaicing layers: one of "mean",
+"median", "min", "max", "modal", "sum", "first", "last". The default
+is "first".}
 }
 \value{
 A \code{data.frame} containing greenspace values extracted at each point
@@ -25,16 +53,13 @@ columns represent band values.
 }
 \description{
 Samples values by locatoins from the Greenspace Seasonality Data Cube
-developed by Wu et al. (2024) or ESA WorldCover 10m Annual Composites Dataset
-by Zanaga et al. (2021).
+developed by Wu et al. (2024), ESA WorldCover 10m Annual Composites Dataset
+by Zanaga et al. (2021), or Sentinel-2-l2a images.
 }
 \details{
-\code{year}: For the greenspace seasonality data cube, only years from 2019 to 2022
+\code{time}: For the greenspace seasonality data cube, only years from 2019 to 2022
 are availabe. For ESA WorldCover 10m Annual Composites Dataset, only 2020
 and 2021 are available.
-
-The Greenspace Data Cube is organized into 36 bands per year,
-each representing a 10-day interval.
 }
 \note{
 For sampling data from Greenspace Seasonality Data Cube \code{samples} must be
@@ -52,7 +77,7 @@ samples <- sf::st_sample(boundary, size = 20)
 
 # extract values
 gs_samples <- sample_values(samples,
-                            # year = 2022
+                            # time = 2022
                            )
 
 }

@@ -2,7 +2,7 @@
 title: "get_data"
 author: "Xiaohao Yang"
 vignette: >
-  %\VignetteIndexEntry{greenSD}
+  %\VignetteIndexEntry{get data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,31 +13,50 @@ Downloading data may take more than 5 minutes.
 ### By bounding box
 
 ```{r eval=FALSE}
-gs <- greenSD::get_gsdc_data(bbox = c(-83.272828,42.343950,-83.218926,42.379719), year = 2022, mask = TRUE)
+gs <- greenSD::get_gsdc(bbox = c(-83.272828,42.343950,-83.218926,42.379719), year = 2022, mask = TRUE)
 ```
 
 ### By place name
 
 ```{r eval=FALSE}
-gs <- greenSD::get_gsdc_data(place = 'Detroit', year = 2022)
+gs <- greenSD::get_gsdc(place = 'Detroit', year = 2022)
 ```
 
 ### By coordinates (point)
 
 ```{r eval=FALSE}
-gs <- greenSD::get_gsdc_data(location = c(-83.10215 42.38342), year = 2022)
+gs <- greenSD::get_gsdc(location = c(-83.10215 42.38342), year = 2022)
 ```
 
 ### By UID and time range
 
 ```{r eval=FALSE}
 # greenSD::check_available_cities()
-gs <- greenSD::get_gsdc_data(UID = 1825, year = 2022, time = c("03-01", "09-01"))
+gs <- greenSD::get_gsdc(UID = 1825, year = 2022, time = c("03-01", "09-01"))
 ```
 
-### Get NDVI data by place name
+### Get NDVI data by place name from ESA WorldCover 10m Annual Dataset
+
 ```{r eval=FALSE}
-ndvi <- greenSD::get_ndvi_data(place = 'Detroit')
+ndvi <- greenSD::get_esa_wc(place = 'Detroit', datatype = "ndvi")
+```
+
+# Get the greenspace segmentation from Esri.WorldImagery map tiles
+```{r eval=FALSE}
+green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                 provider = "esri",
+                                 zoom = 16)
+```
+
+# Generate finer-resolution land cover data
+This example will take about 15 minutes.
+
+```{r eval=FALSE}
+lc <- greenSD::lc_sem_seg(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                          label_year = 2021,
+                          tiles = c('esri', 'eox'),
+                          tile_year = 2024,
+                          test = FALSE)
 ```
 
 # Extract values from Greenspace Seasonality Data Cube with samples
@@ -48,6 +67,12 @@ within a city boundary.
 boundary <- greenSD::check_urban_boundary(uid = 1825, plot = FALSE)
 samples <- sf::st_sample(boundary, size = 50)
 gs_samples <- greenSD::sample_values(samples, year = 2022)
+```
+
+# Download land cover data from ESA WorldCover 10m dataset
+
+```{r eval=FALSE}
+lc <- greenSD::get_esa_wc(place = 'Detroit', datatype = "landcover")
 ```
 
 # Visualize Seasonal Greenspace Dynamics as an Animated GIF
