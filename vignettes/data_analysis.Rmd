@@ -2,7 +2,7 @@
 title: "data_analysis"
 author: "Xiaohao Yang"
 vignette: >
-  %\VignetteIndexEntry{greenSD}
+  %\VignetteIndexEntry{data analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

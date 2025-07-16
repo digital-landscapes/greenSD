@@ -18,15 +18,15 @@ at grid level will be computed based on the size (in meters) of given grid cells
 input (sf) polygons.}
 }
 \value{
-A spatvect object contains indivisual patches with metrics at patch level,
+A SpatVector object contains indivisual patches with metrics at patch level,
 when \code{grid_size = NULL}.
 
-A spatvect object contains indivisual grid with average value of metrics,
+A SpatVector object contains landscape-level value of metrics,
 when \code{grid_size} is not \code{NULL}.
 }
 \description{
 Compute greenspace morphology metrics at patch (Nowosad & Stepinski, 2019)
-or grid level (see details), including average size (AREA_MN), fragmentation (PD),
+or landscape level (see details), including average size (AREA_MN), fragmentation (PD),
 connectedness (COHESION), aggregation (AI), and complexity of the shape (SHAPE_AM),
 related to public health (Wang et al., 2024)
 }

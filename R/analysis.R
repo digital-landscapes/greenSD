@@ -201,7 +201,7 @@ compute_exposure <- function(r = NULL,
 #' Information Sciences, 42, 237-240.
 #'
 #' @export
-ndvi_to_sem <- function(r, threshold = c(0.2, 0.5)) {
+ndvi_to_sem <- function(r = NULL, threshold = c(0.2, 0.5)) {
   if (is.null(r)) {
     return(NULL)
   }

@@ -144,7 +144,7 @@ Computational process of population-weighted greenspace fraction and exposure
 | <figure><img src="images/pwgf.png" width="100%"/></figure> | <figure><img src="images/grid_500m.png" width="100%"/></figure> | <figure><img src="images/etg.png" width="100%"/></figure> |
 | <figcaption style="font-size:8px;">Compute greenspace area within each buffer and weight by population</figcaption> | <figcaption style="font-size:8px;">Generate 500m grid to aggregate data</figcaption> | <figcaption style="font-size:8px;">Summarize population-weighted greenspace fraction by grid</figcaption> |
 
-#### 3 Visualization
+#### 8 Visualization
 The `to_gif()` function converts a multi-band raster to into an animated GIF
 
 ```r

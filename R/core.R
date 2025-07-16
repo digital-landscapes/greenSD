@@ -715,7 +715,7 @@ get_tile_green <- function(bbox = NULL,
     m <- terra::rast(mat, extent = terra::ext(m), crs = terra::crs(m))
   } else {
     m <- maptiles::get_tiles(bbox,
-                             provider = if (provider == "eox") p else "Esri.WorldImagery",
+                             provider = "Esri.WorldImagery",
                              zoom = zoom,
                              crop = TRUE)
   }
@@ -844,7 +844,7 @@ get_tile_green <- function(bbox = NULL,
 #' @importFrom purrr reduce
 #' @importFrom parallel detectCores
 #' @importFrom grDevices rgb
-#' @importFrom stats predict
+#' @importFrom stats predict na.omit
 #'
 #' @export
 lc_sem_seg <- function(bbox = NULL,
@@ -979,7 +979,7 @@ lc_sem_seg <- function(bbox = NULL,
   dataset_df <- dataset_df %>% purrr::reduce(dplyr::inner_join, by = "ID")
   dataset_df <- dataset_df[,-c(1)]
   dataset_df$layer <- as.factor(dataset_df$layer)
-  dataset_df <- na.omit(dataset_df)
+  dataset_df <- stats::na.omit(dataset_df)
 
   train_ind <- caret::createDataPartition(dataset_df$layer,
                                           p = trian_split,

@@ -2,7 +2,7 @@
 title: "get_data"
 author: "Xiaohao Yang"
 vignette: >
-  %\VignetteIndexEntry{greenSD}
+  %\VignetteIndexEntry{get data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -42,7 +42,7 @@ ndvi <- greenSD::get_esa_wc(place = 'Detroit', datatype = "ndvi")
 ```
 
 # Get the greenspace segmentation from Esri.WorldImagery map tiles
-```{r}
+```{r eval=FALSE}
 green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
                                  provider = "esri",
                                  zoom = 16)
@@ -71,7 +71,7 @@ gs_samples <- greenSD::sample_values(samples, year = 2022)
 
 # Download land cover data from ESA WorldCover 10m dataset
 
-```{r}
+```{r eval=FALSE}
 lc <- greenSD::get_esa_wc(place = 'Detroit', datatype = "landcover")
 ```
 

@@ -4,7 +4,7 @@
 \alias{ndvi_to_sem}
 \title{ndvi_to_sem}
 \usage{
-ndvi_to_sem(r, threshold = c(0.2, 0.5))
+ndvi_to_sem(r = NULL, threshold = c(0.2, 0.5))
 }
 \arguments{
 \item{r}{A SpatRaster with single greenspace layer, typically
