@@ -73,6 +73,9 @@ bbox <- c(-83.087174,42.333373,-83.042542,42.358748)
 ndvi <- greenSD::get_esa_wc(bbox, datatype = 'ndvi', year = 2021)
 lc <- greenSD::get_esa_wc(bbox, datatype = 'landcover', year = 2021)
 ```
+| ESA WorldCover NDVI | ESA WorldCover Land Cover | 
+|---------------------|---------------------------|
+| ![](images/NDVI_p50.png) | ![](images/lc.png) |
 
 #### 3 Retrieve Sentinel-2-l2a images and compute NDVI
 ```r
@@ -91,16 +94,29 @@ all_bands <- greenSD::get_s2a_ndvi(place = 'New York',
 #### 4 Get map tiles and extract greenspace from WorldImagery or Sentinel-2 cloudless mosaic tiles
 ```r
 greenspace <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
-                                      zoom = 15, 
+                                      zoom = 16, 
                                       provider = "esri")
+# Sentinel-2 cloudless mosaic tiles
+greenspace <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                      zoom = 17, 
+                                      provider = "eox",
+                                      year = 2024)
 ```
+| WorldImagery map | Greenspace | 
+|---------------------|---------------------------|
+| ![](images/esri_tiles.png) | ![](images/esri_green.png) |
+
+| Sentinel-2 cloudless mosaic map | Greenspace | 
+|---------------------|---------------------------|
+| ![](images/eox_tiles.png) | ![](images/eox_green.png) |
 
 #### 5 Classify land cover based on multi-source imagery datasets
 ```r
 sem <- greenSD::lc_sem_seg(bbox = c(-83.087174,42.333373,-83.042542,42.358748),
                            tiles = c('esri', 'eox'),
                            label_year = 2021,
-                           tile_year = 2024)
+                           tile_year = 2024,
+                           sample_size = 20000)
 ```
 
 #### 6 Compute population-weighted greenspace fraction and exposure to greenspace
