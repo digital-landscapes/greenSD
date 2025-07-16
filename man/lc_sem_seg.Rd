@@ -2,17 +2,8 @@
 % Please edit documentation in R/core.R
 \name{lc_sem_seg}
 \alias{lc_sem_seg}
-\alias{get_tile_green}
-\title{Classify greenspace based on map tile images}
+\title{Classify land cover based on multi-source imagery datasets}
 \usage{
-get_tile_green(
-  bbox = NULL,
-  place = NULL,
-  zoom = 17,
-  provider = "esri",
-  year = NULL
-)
-
 lc_sem_seg(
   bbox = NULL,
   place = NULL,
@@ -38,13 +29,6 @@ defining the area of interest. Optional if \code{place} is provided.}
 e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 (c("Madrid", "Barcelona")).}
 
-\item{zoom}{numeric. Zoom level of map tiles. The default is \code{17}.}
-
-\item{provider}{character. One of "esri" and "eox".}
-
-\item{year}{integer. The desired year for Sentinel-2 cloudless mosaic
-tiles. (This is required when \code{provider = "eox"})}
-
 \item{label_year}{numeric. The year of interest: \code{2020} or \code{2021} for retrieving
 land cover from ESA WorldCover dataset. The default is \code{2021}.}
 
@@ -53,6 +37,8 @@ land cover from ESA WorldCover dataset. The default is \code{2021}.}
 
 \item{tile_year}{numeric. The year (available from 2018 to 2024) of map tiles
 provided by EOX.}
+
+\item{zoom}{numeric. Zoom level of map tiles. The default is \code{17}.}
 
 \item{s2a}{character. One of "all_bands", "ndvi", and NULL.
 If \code{s2a = "all_bands"}, all bands of Sentinel-2-l2a will downloaded.
@@ -83,18 +69,11 @@ model. The default is \code{TRUE}.}
 generate land cover.}
 }
 \value{
-A list of two rasters including: greenspace segmentation (where 1 is
-green and 0 is non-green) and original map tiles
-
 If \code{test = FALSE}, a land cover raster.
 If \code{test = TRUE}, a list includes a land cover raster, model performance table,
 and predictor importance plot.
 }
 \description{
-Generate high-resolution greenspace segmentation using WorldImagery map
-tiles provided by esri and Sentinel-2 cloudless mosaic tiles provided
-by EOX.
-
 Generate semantic land cover segmentation based on map tiles and bands
 of Sentinel-2-l2a images by sampling data over the landcover of ESA WorldCover
 dataset and using random forest. The semantic segmentation includes the same classes
@@ -117,19 +96,7 @@ This function uses ESA WorldCover classification with additional class of buildi
    105 \tab Buildings \tab (0, 0, 0) \tab Buildings \cr
 }
 }
-\note{
-The data derived from Esri WorldImagery may need to include appropriate
-Esri copyright notice.
-
-Using Google Maps data for non-visualization use cases like image analysis,
-machine interpretation, object detection, or geodata extraction is not permitted.
-}
 \examples{
-g <- get_tile_green(
- # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
- zoom = 15
-)
-
 sem <- lc_sem_seg(
    # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
    tiles = c('esri', 'eox'),

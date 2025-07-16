@@ -177,12 +177,13 @@ get_gsdc <- function(bbox = NULL, place = NULL, location = NULL, UID = NULL,
 #' @param mask logical (optional). Default is `TRUE`. If `TRUE`, masks the
 #' raster data using the given `bbox` or `place`.
 #'
-#' @return A `SpatRaster` object containing NDVI yearly percentiles composite
-#' (NDVI p90, NDVI p50, NDVI p10)
+#' @return A `SpatRaster` object containing 11-class land cover or NDVI
+#' yearly percentiles composite (NDVI p90, NDVI p50, NDVI p10)
 #'
 #' @examples
 #' result <- get_esa_wc(
 #'   # place = 'New York'
+#'   year = 2021
 #' )
 #'
 #' @references
@@ -639,7 +640,7 @@ sample_values <- function(samples = NULL, time = NULL,
 }
 
 #' @title Classify greenspace based on map tile images
-#' @name lc_sem_seg
+#' @name get_tile_green
 #' @description
 #' Generate high-resolution greenspace segmentation using WorldImagery map
 #' tiles provided by esri and Sentinel-2 cloudless mosaic tiles provided
@@ -649,9 +650,7 @@ sample_values <- function(samples = NULL, time = NULL,
 #' @param place character or vector. (optional) A single line address,
 #' e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 #' (c("Madrid", "Barcelona")).
-#' @param zoom numeric. Zoom level of map tile. The default is `17`. To
-#' exclude RGB-based map tiles in training random forest model,
-#' use `zoom = NULL`.
+#' @param zoom numeric. Zoom level of map tile. The default is `17`.
 #' @param provider character. One of "esri" and "eox".
 #' @param year integer. The desired year for Sentinel-2 cloudless mosaic
 #' tiles. (This is required when `provider = "eox"`)
@@ -663,9 +662,6 @@ sample_values <- function(samples = NULL, time = NULL,
 #' @note
 #' The data derived from Esri WorldImagery may need to include appropriate
 #' Esri copyright notice.
-#'
-#' Using Google Maps data for non-visualization use cases like image analysis,
-#' machine interpretation, object detection, or geodata extraction is not permitted.
 #'
 #' @examples
 #' g <- get_tile_green(
@@ -841,7 +837,7 @@ get_tile_green <- function(bbox = NULL,
 #'    tile_year = 2024
 #' )
 #'
-#' @importFrom terra spatSample rasterize extract compareGeom subst as.int levels predict
+#' @importFrom terra spatSample rasterize extract compareGeom subst as.int levels predict app
 #' @importFrom overturemapsr record_batch_reader
 #' @importFrom caret train createDataPartition confusionMatrix varImp
 #' @importFrom dplyr inner_join
@@ -907,7 +903,7 @@ lc_sem_seg <- function(bbox = NULL,
   if (length(tiles) == 1 & tiles[1] == "eox") {
     tile_set <- get_tile_green(bbox, provider = "eox",
                                zoom = zoom, year = tile_year)
-    sat_eox <- tile_set$map
+    sat_eox <- tile_set$map/255
     names(sat_eox) <- c('eox_r', 'eox_g', 'eox_b')
     green_eox <- tile_set$green
     names(green_eox) <- c("green_eox")
@@ -916,19 +912,19 @@ lc_sem_seg <- function(bbox = NULL,
                                zoom = zoom, year = tile_year)
     tile_esri <- get_tile_green(bbox, provider = "esri",
                                 zoom = zoom)
-    sat_eox <- tile_eox$map
-    sat_esri <- tile_esri$map
+    sat_eox <- tile_eox$map/255
+    sat_esri <- tile_esri$map/255
     names(sat_eox) <- c('eox_r', 'eox_g', 'eox_b')
     names(sat_esri) <- c('esri_r', 'esri_g', 'esri_b')
     green_eox <- tile_eox$green
-    tile_esri <- tile_esri$green
+    green_esri <- tile_esri$green
     names(green_eox) <- c("green_eox")
     names(green_esri) <- c("green_esri")
   }
 
   bands <- NULL
   ndvi <- NULL
-  if (is.null(s2a)) {
+  if (!is.null(s2a)) {
     if (s2a == "ndvi") {
       ndvi <- get_s2a_ndvi(bbox = bbox,
                            datetime = datetime,
@@ -943,6 +939,9 @@ lc_sem_seg <- function(bbox = NULL,
                             vege_perc = vege_perc,
                             output_bands = band_names)
       ndvi <- compute_ndvi(bands$B04, bands$B08)
+      bands <- terra::app(bands,
+                          scale2_0_1,
+                          cores = if (!cores) 1 else parallel::detectCores() -1)
     }
     names(ndvi) <- 'ndvi'
   }
@@ -958,7 +957,7 @@ lc_sem_seg <- function(bbox = NULL,
 
   if (!is.null(sat_eox)) eox_rgb_set <- terra::extract(sat_eox, samples_vect, method = 'simple')
   if (!is.null(green_eox)) eox_green_set <- terra::extract(green_eox, samples_vect, method = 'simple')
-  if (!is.null(sat_esri)) esri_rgb_set <- terra::extract(esri_eox, samples_vect, method = 'simple')
+  if (!is.null(sat_esri)) esri_rgb_set <- terra::extract(sat_esri, samples_vect, method = 'simple')
   if (!is.null(green_esri)) esri_green_set <- terra::extract(green_esri, samples_vect, method = 'simple')
 
   if (!is.null(bands)) {

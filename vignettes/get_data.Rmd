@@ -41,13 +41,22 @@ gs <- greenSD::get_gsdc(UID = 1825, year = 2022, time = c("03-01", "09-01"))
 ndvi <- greenSD::get_esa_wc(place = 'Detroit', datatype = "ndvi")
 ```
 
+# Get the greenspace segmentation from Esri.WorldImagery map tiles
+```{r}
+green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                 provider = "esri",
+                                 zoom = 16)
+```
+
 # Generate finer-resolution land cover data
-This example will take about 35 minutes.
+This example will take about 15 minutes.
 
 ```{r eval=FALSE}
 lc <- greenSD::lc_sem_seg(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
-                          datetime = c("2024-06-15", "2024-08-15"),
-                          year = 2021)
+                          label_year = 2021,
+                          tiles = c('esri', 'eox'),
+                          tile_year = 2024,
+                          test = FALSE)
 ```
 
 # Extract values from Greenspace Seasonality Data Cube with samples

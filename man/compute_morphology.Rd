@@ -4,21 +4,51 @@
 \alias{compute_morphology}
 \title{compute_morphology}
 \usage{
-compute_morphology(p = NULL, directions = 4, grid_size = NULL)
+compute_morphology(r = NULL, directions = 4, grid_size = NULL)
 }
 \arguments{
-\item{p}{SpatRaster or list of SpatRaster.}
+\item{r}{SpatRaster. A single-band binary greenspace raster, where 0 or NA
+represents non-green areas and 1 represents green areas.}
 
 \item{directions}{numeric. The number of directions in which patches should be
 connected: 4 (default) or 8.}
+
+\item{grid_size}{numeric or sf polygons. (Optional) If specified, morphology metrics
+at grid level will be computed based on the size (in meters) of given grid cells or
+input (sf) polygons.}
+}
+\value{
+A spatvect object contains indivisual patches with metrics at patch level,
+when \code{grid_size = NULL}.
+
+A spatvect object contains indivisual grid with average value of metrics,
+when \code{grid_size} is not \code{NULL}.
 }
 \description{
-Compute greenspace morphology metrics at patch or grid level,
-including average size (AREA_MN), fragmentation (PD), connectedness (COHESION),
-aggregation (AI), and complexity of the shape (SHAPE_AM), related to public health
-(Wang et al., 2024)
+Compute greenspace morphology metrics at patch (Nowosad & Stepinski, 2019)
+or grid level (see details), including average size (AREA_MN), fragmentation (PD),
+connectedness (COHESION), aggregation (AI), and complexity of the shape (SHAPE_AM),
+related to public health (Wang et al., 2024)
+}
+\details{
+To get information of metrics, please use \code{landscapemetrics::list_lsm()}.
+}
+\examples{
+green <- get_tile_green(
+                        # bbox = c(-83.087174,42.333373,-83.042542,42.358748),
+                        provider = "esri",
+                        zoom = 16)
+# p <- terra::ifel(green$green == 0, NA, 1)
+m <- compute_morphology(
+                       #r = p
+                       directions = 8)
+
 }
 \references{
+Nowosad J., TF Stepinski. 2019. Information theory as a consistent framework for
+quantification and classification of landscape patterns.
+https://doi.org/10.1007/s10980-019-00830-x
+
 Wang, H., & Tassinary, L. G. (2024). Association between greenspace morphology
 and prevalence of non-communicable diseases mediated by air pollution and physical
 activity. Landscape and Urban Planning, 242, 104934.

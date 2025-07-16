@@ -18,7 +18,8 @@ for classify two types of vegetation areas according to Hashim et al. (2019):
 between \code{0.5} and \code{1.0}.}
 }
 \value{
-SpatRaster
+SpatRaster. A raster, where \code{0} represents non-green area, \code{1} represents
+shrub and grassland, and \code{2} represents trees.
 }
 \description{
 Convert ndvi raster data into semantic vegetation areas

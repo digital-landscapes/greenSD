@@ -474,6 +474,69 @@ write_eox_wms_xml <- function(bbox, year = 2024, zoom = 15) {
   return(xml_lines)
 }
 
+#' @noMd
+scale2_0_1 <- function(x) {
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+}
+
+#' @importFrom future multisession availableCores plan
+#' @importFrom purrr reduce
+#' @importFrom furrr future_map
+#' @importFrom dplyr full_join
+#' @importFrom landscapemetrics lsm_p_perim lsm_p_area lsm_p_contig lsm_p_enn
+#' @importFrom landscapemetrics lsm_p_core lsm_p_frac lsm_p_shape lsm_p_para
+#' @importFrom landscapemetrics lsm_p_ncore lsm_p_gyrate lsm_p_circle lsm_p_cai
+#' @noMd
+compute_landscape_metrics_parallel <- function(r,
+                                               directions = 4,
+                                               metric_names = c("perim", "area", "contig",
+                                                                "enn", "core", "frac",
+                                                                "shape", "para", "ncore",
+                                                                "gyrate", "circle", "cai"),
+                                               progress = FALSE) {
+  raster_path <- tempfile(fileext = ".tif")
+  on.exit(unlink(raster_path))
+  terra::writeRaster(r, raster_path, overwrite = TRUE)
+
+  future::plan(future::multisession, workers = future::availableCores() - 1)
+
+  compute_one_metric <- function(metric_name, raster_path, directions) {
+    r_local <- terra::rast(raster_path)
+    fname <- paste0("lsm_p_", metric_name)
+    fn <- getExportedValue("landscapemetrics", fname)
+    df <- fn(r_local, directions = directions)
+    df <- df[, c("id", "value")]
+    names(df)[2] <- toupper(metric_name)
+    df
+  }
+
+  result_list <- furrr::future_map(
+    metric_names,
+    compute_one_metric,
+    raster_path = raster_path,
+    directions = directions,
+    .progress = progress
+  )
+
+  results <- purrr::reduce(result_list, dplyr::full_join, by = "id")
+  return(results)
+}
+
+#' @noMd
+#' @importFrom landscapemetrics sample_lsm
+#' @importFrom tidyr pivot_wider
+compute_landscape_l_metrics <- function(r, grid) {
+  metr <- landscapemetrics::list_lsm()
+  metric_names = as.vector(metr[metr$level=='landscape', 1])
+  landscapes <- suppressWarnings(
+    landscapemetrics::sample_lsm(r, grid, what = paste0("lsm_l_", metric_names$metric))
+  )
+  landscapes_w <- tidyr::pivot_wider(landscapes,
+                                     id_cols = plot_id,
+                                     names_from = metric,
+                                     values_from = value)
+  return(cbind(grid, landscapes_w))
+}
 
 #' @noMd
 report_time <- function(start_time) {
@@ -484,4 +547,19 @@ report_time <- function(start_time) {
   } else {
     cli::cli_alert_success(paste0("Completed. Time taken: ", round(process_time), " seconds."))
   }
+}
+
+#' @noMd
+get_utm_crs <- function(bbox) {
+  centroid <- sf::st_centroid(sf::st_union(bbox))
+  coords <- sf::st_coordinates(centroid)
+  lon <- coords[1]
+  lat <- coords[2]
+  zone <- floor((lon + 180) / 6) + 1
+  epsg <- if (lat >= 0) {
+    32600 + zone
+  } else {
+    32700 + zone
+  }
+  return(epsg)
 }

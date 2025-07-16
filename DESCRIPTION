@@ -16,7 +16,7 @@ Description: greenSD provides tools to access and analyze multi-band greenspace
   by year or seasonal time window. The package also supports calculating human 
   exposure to greenspace using a population-weighted greenspace exposure model 
   based on GHSL population data, and calculating a set of greenspace morphology 
-  metrics.
+  metrics at patch and grid levels.
 URL: https://github.com/billbillbilly/greenSD
 BugReports: https://github.com/billbillbilly/greenSD/issues
 License: GPL-3
@@ -33,6 +33,8 @@ Imports:
   terra,
   sf,
   parallel,
+  future,
+  furrr,
   caret,
   purrr,
   nominatimlite,

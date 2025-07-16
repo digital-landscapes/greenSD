@@ -6,9 +6,7 @@
 \usage{
 compute_exposure(
   r = NULL,
-  inputtype = "fb",
   res = c(10, 10),
-  threshold = c(0.2, 0.2, 0.2),
   pop_year = 2020,
   radius = 500,
   grid_size = NULL,
@@ -17,19 +15,12 @@ compute_exposure(
 )
 }
 \arguments{
-\item{r}{A SpatRaster with single/multiple greenspace layer(s), typically
-the output from \code{\link[=get_gsdc]{get_gsdc()}}, \code{\link[=get_esa_wc]{get_esa_wc()}}, or \code{\link[=get_s2a_ndvi]{get_s2a_ndvi()}}.}
-
-\item{inputtype}{character. Data type for greenspace. Must be either \code{"fb"} (default),
-\code{"ndvi"}. If \code{"fb"}, either fractional or binary (where non-green = 0 and green = 1)
-will be taken. If \code{"ndvi"}, NDVI will be used to approximate greenspace.}
+\item{r}{A SpatRaster with single/multiple greenspace layer(s), either
+fractional or binary (where non-green = 0 and green = 1), typically
+the output from \code{\link[=get_gsdc]{get_gsdc()}}, \code{\link[=get_esa_wc]{get_esa_wc()}}, or \code{\link[=get_tile_green]{get_tile_green()}}.}
 
 \item{res}{numeric vector of length 2. The actual spatial resolution (in meters).
 Default is \code{c(10, 10)}.}
-
-\item{threshold}{numeric vector. Threshold(s) for classify greenspace
-based on NDVI layer(s), defaulting to \code{c(0.2, 0.2, 0.2)}. The length of the thresholds
-depends the number of NDVI layers in the input raster \code{r}. See details.}
 
 \item{pop_year}{numeric. Year of the GHSL dataset to use.
 Must be one of: 2015, 2020, 2025, or 2030. Default is 2020.}
@@ -59,9 +50,6 @@ Pesaresi et al., 2024).
 See \strong{Details} for the underlying method and assumptions.
 }
 \details{
-When \code{type = "ndvi"}, the hard threshold of NDVI values (\code{"threshold"})
-will be used to classify the rsaster into vegetation and non-vegetation categories
-for each cell.
 This function implements the population-weighted greenspace exposure (PWGE) model:
 
 \enumerate{
@@ -78,7 +66,6 @@ This function implements the population-weighted greenspace exposure (PWGE) mode
 sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
 pwgf <- compute_exposure(
   # r = sample_data,
-  source = 'gsdc',
   pop_year = 2020,
   radius = 1500
 )
@@ -99,7 +86,4 @@ Tolan, J., Yang, H. I., Nosarzewski, B., Couairon, G., Vo, H. V., Brandt,
 J., ... & Couprie, C. (2024). Very high resolution canopy height maps from
 RGB imagery using self-supervised vision transformer and convolutional
 decoder trained on aerial lidar. Remote Sensing of Environment, 300, 113888.
-}
-\seealso{
-\code{\link[=get_gsdc_data]{get_gsdc_data()}}, \code{\link[=get_ndvi_data]{get_ndvi_data()}}
 }

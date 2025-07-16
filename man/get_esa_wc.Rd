@@ -29,8 +29,8 @@ e.g. ("1600 Pennsylvania Ave NW, Washington") or a vector of addresses
 raster data using the given \code{bbox} or \code{place}.}
 }
 \value{
-A \code{SpatRaster} object containing NDVI yearly percentiles composite
-(NDVI p90, NDVI p50, NDVI p10)
+A \code{SpatRaster} object containing 11-class land cover or NDVI
+yearly percentiles composite (NDVI p90, NDVI p50, NDVI p10)
 }
 \description{
 download 11-class landcover or 3-band NDVI Data
@@ -40,6 +40,7 @@ using a bounding box or place name.
 \examples{
 result <- get_esa_wc(
   # place = 'New York'
+  year = 2021
 )
 
 }
