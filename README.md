@@ -15,17 +15,25 @@ extract values at specific points, and filter by year or seasonal time
 window. Moreover, the package. The package also supports calculating human 
 exposure to greenspace using a population-weighted greenspace exposure model 
 based on Global Human Settlement Layer (GHSL) population data and computing 
-a set of greenspace morphology metrics at patch or grid levels.
+a set of greenspace morphology metrics at patch or landscape levels.
 
 ## Features
 🌍 Access global greenspace datasets by bounding box, city name, or geographic coordinates
 - Seasonal greenspace data cubes for 1028 major global cities
 - 10m NDVI composite data from ESA WorldCover
 
+🛰️ Remote sensing–based greenspace extraction
+- Automatically download and process high-resolution images from WorldImagery or Sentinel-2 cloudless tiles (EOX)
+- Extract greenery from map tiles
+- Retrieve Sentinel-2 L2A imagery and compute NDVI or extract raw bands
+
+🧠 Multi-source land cover classification
+- Combine semantic segmentation and remote sensing tiles for land cover classification
+
 🧮 Greenspace metrics calculation
 - Estimate population-weighted greenspace fraction (PWGF)
 - Calculate population-weighted greenspace exposure (PWGE) 
-- Morphology
+- Calculate morphological greenscape metrics (e.g., area, perimeter, shape, core area, contiguity)
 
 📊 Visualization
 - Export multi-layer data as animated GIFs
@@ -59,7 +67,43 @@ samples <- sf::st_sample(boundary, size = 50)
 gs_samples <- greenSD::sample_values(samples, year = 2022)
 ```
 
-#### 2 Compute population-weighted greenspace fraction and exposure to greenspace
+#### 2 Get data from ESA WorldCover 10m Annual Dataset
+```r
+bbox <- c(-83.087174,42.333373,-83.042542,42.358748)
+ndvi <- greenSD::get_esa_wc(bbox, datatype = 'ndvi', year = 2021)
+lc <- greenSD::get_esa_wc(bbox, datatype = 'landcover', year = 2021)
+```
+
+#### 3 Retrieve Sentinel-2-l2a images and compute NDVI
+```r
+ndvi <- greenSD::get_s2a_ndvi(place = 'New York', 
+                              datetime = c("2020-08-01", "2020-09-01"), 
+                              output_bands = NULL)
+all_bands <- greenSD::get_s2a_ndvi(place = 'New York', 
+                                   datetime = c("2020-08-01", "2020-09-01"), 
+                                   output_bands = c('B01', 'B02', 'B03', 
+                                                    'B04', 'B05', 'B06', 
+                                                    'B07', 'B08', 'B09', 
+                                                    'B11', 'B12')
+                                  )
+```
+
+#### 4 Get map tiles and extract greenspace from WorldImagery or Sentinel-2 cloudless mosaic tiles
+```r
+greenspace <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                      zoom = 15, 
+                                      provider = "esri")
+```
+
+#### 5 Classify land cover based on multi-source imagery datasets
+```r
+sem <- greenSD::lc_sem_seg(bbox = c(-83.087174,42.333373,-83.042542,42.358748),
+                           tiles = c('esri', 'eox'),
+                           label_year = 2021,
+                           tile_year = 2024)
+```
+
+#### 6 Compute population-weighted greenspace fraction and exposure to greenspace
 ```r
 # Load example data (or use `gs` from previous step)
 sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "greenSD"))
@@ -67,18 +111,25 @@ sample_data <- terra::rast(system.file("extdata", "detroit_gs.tif", package = "g
 # population-weighted greenspace fraction
 pwgf <- greenSD::pop_weg(
       r = sample_data,
-      source = 'gsdc',
       pop_year = 2020,
       radius = 500)
 
 # population-weighted greenspace exposure
 pwge <- greenSD::pop_weg(
       r = sample_data,
-      source = 'gsdc',
       pop_year = 2020,
       radius = 500, 
       grid_size = 500)
 
+```
+
+#### 7 Compute morphology metrics of greenspace
+```r
+green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                 provider = "esri", 
+                                 zoom = 16)
+p <- terra::ifel(green$green == 0, NA, 1)
+m <- greenSD::compute_morphology(r = p, directions = 8)
 ```
 
 Computational process of population-weighted greenspace fraction and exposure

@@ -331,10 +331,12 @@ download_GHSL <- function(bbox, year) {
     cli::cli_alert_info('Start peocessing population data ...')
 
     pop <- if (length(result_list) == 1) result_list[[1]] else do.call(terra::merge, c(result_list, list(algo = 3)))
+    res <- terra::res(pop)
     cli::cli_alert_info('Cropping ...')
     bbox_moll <- terra::project(terra::vect(bbox), terra::crs(pop))
+    # pop <- terra::mask(pop, bbox_moll)
+    pop <- terra::crop(pop, terra::ext(bbox_moll))
     pop <- terra::mask(pop, bbox_moll)
-    pop <- terra::crop(pop, bbox_moll)
     cli::cli_alert_info('Re-projecting ...')
     pop <- terra::project(pop, paste0('EPSG:', 4326), method = 'bilinear')
 

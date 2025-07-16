@@ -85,7 +85,6 @@ compute_exposure <- function(r = NULL,
 
   # download population layer
   pop <- download_GHSL(bbox, pop_year)
-  pop <- terra::crop(pop, terra::vect(bbox))
 
   cli::cli_alert_info('Computing greenspace area')
   # calculate greenspace area
@@ -144,6 +143,7 @@ compute_exposure <- function(r = NULL,
     # return the population-weighted greenspace fraction
     out <- r_stack
     terra::set.names(out, paste('pwgf_', 1:(n_name - 1), sep = ""))
+    report_time(start_time)
     return(out)
   } else {
     cli::cli_alert_info('Computing population-weighted greenspace exposure (pwge)')
@@ -215,7 +215,7 @@ ndvi_to_sem <- function(r, threshold = c(0.2, 0.5)) {
 #' compute_morphology
 #' @description
 #' Compute greenspace morphology metrics at patch (Nowosad & Stepinski, 2019)
-#' or grid level (see details), including average size (AREA_MN), fragmentation (PD),
+#' or landscape level (see details), including average size (AREA_MN), fragmentation (PD),
 #' connectedness (COHESION), aggregation (AI), and complexity of the shape (SHAPE_AM),
 #' related to public health (Wang et al., 2024)
 #' @param r SpatRaster. A single-band binary greenspace raster, where 0 or NA
@@ -227,10 +227,10 @@ ndvi_to_sem <- function(r, threshold = c(0.2, 0.5)) {
 #' input (sf) polygons.
 #'
 #' @return
-#' A spatvect object contains indivisual patches with metrics at patch level,
+#' A SpatVector object contains indivisual patches with metrics at patch level,
 #' when `grid_size = NULL`.
 #'
-#' A spatvect object contains indivisual grid with average value of metrics,
+#' A SpatVector object contains landscape-level value of metrics,
 #' when `grid_size` is not `NULL`.
 #'
 #' @details
@@ -320,7 +320,7 @@ compute_morphology <- function(r = NULL, directions = 4, grid_size = NULL) {
     report_time(start_time)
     return(sf::st_as_sf(patch_polygons))
   } else {
-    cli::cli_alert_info('Computing metrics at grid level ...')
+    cli::cli_alert_info('Computing metrics at landscape level ...')
     results <- compute_landscape_l_metrics(r_proj, grid)
     report_time(start_time)
     return(results)
