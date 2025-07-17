@@ -1,7 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.md$
-^images$
 ^scripts$
 ^\.github$
 ^LICENSE\.md$
@@ -9,3 +8,6 @@
 ^.*\.gitignore$
 ^.*\.Rhistory$
 ^.*\.DS_Store$
+^_pkgdown\.yml$
+^pkgdown$
+^man/figures$
