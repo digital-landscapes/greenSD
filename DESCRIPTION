@@ -17,7 +17,7 @@ Description: greenSD provides tools to access and analyze multi-band greenspace
   exposure to greenspace using a population-weighted greenspace exposure model 
   based on GHSL population data, and calculating a set of greenspace morphology 
   metrics at patch and landscape levels.
-URL: https://github.com/billbillbilly/greenSD
+URL: https://github.com/billbillbilly/greenSD, https://billbillbilly.github.io/greenSD/
 BugReports: https://github.com/billbillbilly/greenSD/issues
 License: GPL-3
 Encoding: UTF-8
