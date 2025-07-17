@@ -1,0 +1,10 @@
+pandoc: 3.1.11
+pkgdown: 2.1.3
+pkgdown_sha: ~
+articles:
+  data_analysis: data_analysis.html
+  get_data: get_data.html
+last_built: 2025-07-17T03:01Z
+urls:
+  reference: https://billbillbilly.github.io/greenSD/reference
+  article: https://billbillbilly.github.io/greenSD/articles
