@@ -54,7 +54,7 @@ check_urban_boundary <- function(uid = NULL, plot = TRUE, test = FALSE) {
     return(NULL)
   }
   boundary <- suppressMessages(
-    sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/dev/scripts/city_urban_boundaries.geojson')
+    sf::read_sf('https://raw.githubusercontent.com/billbillbilly/greenSD/main/scripts/city_urban_boundaries.geojson')
   )
   b <- boundary[boundary$UID == uid, ]
   plot(b$geometry)
