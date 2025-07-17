@@ -139,15 +139,6 @@ pwge <- greenSD::pop_weg(
 
 ```
 
-#### 7 Compute morphology metrics of greenspace
-```r
-green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
-                                 provider = "esri", 
-                                 zoom = 16)
-p <- terra::ifel(green$green == 0, NA, 1)
-m <- greenSD::compute_morphology(r = p, directions = 8)
-```
-
 Computational process of population-weighted greenspace fraction and exposure
 
 | <span style="font-size:10px;">1. GHSL population</span> | <span style="font-size:10px;">2. Extract population by points</span> | <span style="font-size:10px;">3. buffers based on points</span> |
@@ -159,6 +150,16 @@ Computational process of population-weighted greenspace fraction and exposure
 |--------------------------------------------|--------------------------------------|---------------------------------------------|
 | <figure><img src="images/pwgf.png" width="100%"/></figure> | <figure><img src="images/grid_500m.png" width="100%"/></figure> | <figure><img src="images/etg.png" width="100%"/></figure> |
 | <figcaption style="font-size:8px;">Compute greenspace area within each buffer and weight by population</figcaption> | <figcaption style="font-size:8px;">Generate 500m grid to aggregate data</figcaption> | <figcaption style="font-size:8px;">Summarize population-weighted greenspace fraction by grid</figcaption> |
+
+#### 7 Compute morphology metrics of greenspace
+```r
+green <- greenSD::get_tile_green(bbox = c(-83.087174,42.333373,-83.042542,42.358748), 
+                                 provider = "esri", 
+                                 zoom = 16)
+p <- terra::ifel(green$green == 0, NA, 1)
+m_patch <- greenSD::compute_morphology(r = p, directions = 4)
+m_grid <- greenSD::compute_morphology(r = p, directions = 4, grid_size = 300)
+```
 
 #### 8 Visualization
 The `to_gif()` function converts a multi-band raster to into an animated GIF
@@ -183,6 +184,9 @@ Example in the Detroit area:
 | Seasonal Greenspace Dynamics | Population-Weighted Greenspace Fraction | Population-Weighted Greenspace Exposure |
 |------------------------------|------------------------------------------|------------------------------------------|
 | ![](images/greenspace_animation.gif) | ![](images/greenspace_fraction_animation.gif) | ![](images/greenspace_exposure_animation.gif) |
+
+## Note
+Some datasets may require proper citation when used. 
 
 ## Issues and bugs
 If you discover a bug not associated with connection to the API that is
